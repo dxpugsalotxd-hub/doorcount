@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Analyze a rental property in seconds: cash flow, cap rate, cash-on-cash return and DSCR.">
+<title>Doorcount Deal Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a two-pane deal sheet. Inputs on the left like a lender's worksheet, the verdict and numbers on the right. */
+:root {
+  --paper: #f3f6f4;
+  --sheet: #ffffff;
+  --ink: #15231e;
+  --muted: #5a6b64;
+  --line: #d6e0db;
+  --accent: #1d6b55;
+  --accent-soft: #e2f0ea;
+  --good: #1d7a4c;
+  --warn: #a96b00;
+  --bad: #b3372b;
+  --good-bg: #e3f4ea;
+  --warn-bg: #fbf0d9;
+  --bad-bg: #fbe5e2;
+  --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0f1714; --sheet: #16211d; --ink: #e4ece8; --muted: #93a59d; --line: #2a3a34;
+  --accent: #5cc3a0; --accent-soft: #1b3129; --good: #5fcf8f; --warn: #e8b04a; --bad: #f07a6c;
+  --good-bg: #17301f; --warn-bg: #33280f; --bad-bg: #3a1c18; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #0f1714; --sheet: #16211d; --ink: #e4ece8; --muted: #93a59d; --line: #2a3a34;
+  --accent: #5cc3a0; --accent-soft: #1b3129; --good: #5fcf8f; --warn: #e8b04a; --bad: #f07a6c;
+  --good-bg: #17301f; --warn-bg: #33280f; --bad-bg: #3a1c18; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; } [hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--f-body); padding-inline: 16px; padding-block: 0 48px; }
+.wrap { max-width: 1120px; margin: 0 auto; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 20px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand b { font: 800 26px/1 var(--f-display); letter-spacing: -0.02em; }
+.brand span { color: var(--muted); font-size: 13px; }
+.plan { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.pill { font: 500 11px/1 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.pro { background: var(--accent); border-color: var(--accent); color: var(--sheet); }
+button, .btn { font: 600 14px var(--f-body); border-radius: 8px; padding: 9px 14px; border: 1px solid var(--accent); background: var(--accent); color: var(--sheet); cursor: pointer; text-decoration: none; display: inline-block; }
+button.ghost, .btn.ghost { background: transparent; color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.intro { padding-block: 28px 8px; max-width: 64ch; }
+.intro h1 { font: 800 clamp(28px, 5vw, 44px)/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 10px; text-wrap: balance; }
+.intro p { color: var(--muted); margin: 0; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 20px; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.sheet { background: var(--sheet); border: 1px solid var(--line); border-radius: 12px; }
+form.sheet { padding: 4px 18px 18px; }
+fieldset { border: 0; padding: 0; margin: 0; padding-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+legend { font: 500 11px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); padding: 0; margin-bottom: 8px; grid-column: 1 / -1; }
+label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+label.wide { grid-column: 1 / -1; }
+.field { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); }
+.field i { font: 400 13px var(--f-mono); font-style: normal; color: var(--muted); padding-inline: 8px; }
+.field input, .field select { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 500 14px var(--f-mono); padding: 8px 8px 8px 0; font-variant-numeric: tabular-nums; }
+.field input[type=text] { font-family: var(--f-body); padding-left: 8px; }
+.field:focus-within { border-color: var(--accent); }
+
+.results { display: grid; gap: 20px; min-width: 0; }
+.verdict { padding: 20px; display: grid; gap: 16px; }
+.verdict-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.verdict-head h2 { margin: 0; font: 600 13px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.chip { font: 600 13px var(--f-body); padding: 6px 12px; border-radius: 999px; }
+.chip.good { background: var(--good-bg); color: var(--good); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+.chip.bad { background: var(--bad-bg); color: var(--bad); }
+.cashflow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.cashflow strong { font: 800 clamp(40px, 7vw, 60px)/1 var(--f-display); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.cashflow span { color: var(--muted); }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.metric { background: var(--sheet); padding: 12px 14px; display: grid; gap: 2px; }
+.metric dt { font-size: 12px; color: var(--muted); }
+.metric dd { margin: 0; font: 500 20px var(--f-mono); font-variant-numeric: tabular-nums; }
+.metric small { font-size: 11.5px; color: var(--muted); }
+.metric dd.good { color: var(--good); } .metric dd.warn { color: var(--warn); } .metric dd.bad { color: var(--bad); }
+
+.section { padding: 18px 20px; display: grid; gap: 12px; position: relative; }
+.section h3 { margin: 0; font: 700 20px var(--f-display); letter-spacing: -0.01em; }
+.section .sub { margin: 0; color: var(--muted); font-size: 13.5px; }
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.ledger { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ledger td { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.ledger td:last-child { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.ledger tr.total td { border-bottom: 0; border-top: 1px solid var(--ink); font-weight: 600; }
+.scroll { overflow-x: auto; }
+table.proj { width: 100%; min-width: 560px; border-collapse: collapse; font: 13px var(--f-mono); font-variant-numeric: tabular-nums; }
+table.proj th { font: 500 11px var(--f-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.proj td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.proj th:first-child, table.proj td:first-child { text-align: left; }
+table.proj tr.hl td { background: var(--accent-soft); font-weight: 500; }
+.assume { display: flex; flex-wrap: wrap; gap: 10px; }
+.assume label { flex: 1 1 140px; }
+
+.locked .lockable { filter: blur(5px); user-select: none; pointer-events: none; }
+.lock { display: none; position: absolute; inset: 60px 20px 20px; place-content: center; text-align: center; gap: 10px; }
+.locked .lock { display: grid; }
+.lock p { margin: 0; max-width: 36ch; font-weight: 500; }
+
+.saved-list { display: grid; gap: 8px; }
+.saved-row { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; }
+.saved-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved-row span { font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.saved-row .acts { display: flex; gap: 6px; }
+.saved-row button { padding: 5px 9px; font-size: 12.5px; }
+.saved-head { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border: 0; padding-block: 0; }
+@media (max-width: 560px) { .saved-row { grid-template-columns: minmax(0, 1fr) auto; } .saved-row span { display: none; } .saved-head { display: none; } }
+.empty { color: var(--muted); font-size: 13.5px; margin: 0; }
+
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--sheet); color: var(--ink); padding: 24px; max-width: min(440px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(10, 20, 16, 0.5); }
+dialog h3 { margin: 0 0 6px; font: 800 24px var(--f-display); }
+dialog ul { padding-left: 18px; margin: 10px 0 16px; }
+.price { font: 800 34px var(--f-display); }
+.price small { font: 400 14px var(--f-body); color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.msg { font-size: 13px; min-height: 1.2em; margin: 6px 0 0; }
+.msg.err { color: var(--bad); } .msg.ok { color: var(--good); }
+.note { font-size: 12px; color: var(--muted); }
+footer { margin-top: 32px; font-size: 12px; color: var(--muted); max-width: 70ch; }
+
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  header.top .plan, form.sheet, .no-print, .lock { display: none !important; }
+  .grid { grid-template-columns: 1fr; }
+  .sheet { border-color: #ccc; break-inside: avoid; }
+}
+@media (prefers-reduced-motion: no-preference) { .cashflow strong { transition: color .2s; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><b>Doorcount</b><span>rental deal analyzer</span></div>
+    <div class="plan">
+      <span class="pill" id="planPill">Free</span>
+      <button class="ghost" id="openUpgrade" type="button">Unlock Pro</button>
+    </div>
+  </header>
+
+  <section class="intro">
+    <h1>Know if a rental pays before you make the offer.</h1>
+    <p>Enter the listing price, financing and rent. You get monthly cash flow, cap rate, cash-on-cash return and DSCR instantly. The example below is a sample duplex; replace it with your deal.</p>
+  </section>
+
+  <div class="grid">
+    <form class="sheet" id="deal" autocomplete="off">
+      <fieldset>
+        <legend>Property</legend>
+        <label class="wide">Deal name<div class="field"><input type="text" id="name" value="Example: 412 Maple St duplex"></div></label>
+        <label>Purchase price<div class="field"><i>$</i><input id="price" inputmode="decimal" value="285000"></div></label>
+        <label>Rehab budget<div class="field"><i>$</i><input id="rehab" inputmode="decimal" value="12000"></div></label>
+        <label>Closing costs<div class="field"><input id="closingPct" inputmode="decimal" value="3"><i>%</i></div></label>
+        <label>After-repair value<div class="field"><i>$</i><input id="arv" inputmode="decimal" value="305000"></div></label>
+      </fieldset>
+      <fieldset>
+        <legend>Financing</legend>
+        <label>Down payment<div class="field"><input id="downPct" inputmode="decimal" value="25"><i>%</i></div></label>
+        <label>Interest rate<div class="field"><input id="rate" inputmode="decimal" value="7.1"><i>%</i></div></label>
+        <label class="wide">Loan term<div class="field"><select id="term"><option value="30" selected>30 years</option><option value="20">20 years</option><option value="15">15 years</option><option value="0">Paid in cash</option></select></div></label>
+      </fieldset>
+      <fieldset>
+        <legend>Income (monthly)</legend>
+        <label>Total rent<div class="field"><i>$</i><input id="rent" inputmode="decimal" value="2650"></div></label>
+        <label>Other income<div class="field"><i>$</i><input id="other" inputmode="decimal" value="60"></div></label>
+        <label class="wide">Vacancy<div class="field"><input id="vacancy" inputmode="decimal" value="5"><i>% of income</i></div></label>
+      </fieldset>
+      <fieldset>
+        <legend>Expenses</legend>
+        <label>Property tax<div class="field"><i>$</i><input id="tax" inputmode="decimal" value="3900"><i>/yr</i></div></label>
+        <label>Insurance<div class="field"><i>$</i><input id="ins" inputmode="decimal" value="1500"><i>/yr</i></div></label>
+        <label>HOA<div class="field"><i>$</i><input id="hoa" inputmode="decimal" value="0"><i>/mo</i></div></label>
+        <label>Utilities you pay<div class="field"><i>$</i><input id="util" inputmode="decimal" value="90"><i>/mo</i></div></label>
+        <label>Repairs<div class="field"><input id="maint" inputmode="decimal" value="5"><i>% rent</i></div></label>
+        <label>CapEx reserve<div class="field"><input id="capex" inputmode="decimal" value="5"><i>% rent</i></div></label>
+        <label class="wide">Property management<div class="field"><input id="mgmt" inputmode="decimal" value="8"><i>% rent</i></div></label>
+      </fieldset>
+    </form>
+
+    <div class="results">
+      <section class="sheet verdict" aria-live="polite">
+        <div class="verdict-head"><h2>Monthly cash flow</h2><span class="chip" id="chip">…</span></div>
+        <div class="cashflow"><strong id="cf">$0</strong><span id="cfYear">$0 a year</span></div>
+        <dl class="metrics">
+          <div class="metric"><dt>Cash-on-cash return</dt><dd id="coc">0%</dd><small>Target 8% or more</small></div>
+          <div class="metric"><dt>Cap rate</dt><dd id="cap">0%</dd><small>NOI ÷ price</small></div>
+          <div class="metric"><dt>DSCR</dt><dd id="dscr">0</dd><small>Lenders want 1.25+</small></div>
+          <div class="metric"><dt>1% rule</dt><dd id="onepct">0%</dd><small>Rent ÷ price</small></div>
+          <div class="metric"><dt>Cash to close</dt><dd id="cash">$0</dd><small>Down + closing + rehab</small></div>
+          <div class="metric"><dt>Break-even rent</dt><dd id="be">$0</dd><small>Cash flow = $0</small></div>
+        </dl>
+      </section>
+
+      <section class="sheet section">
+        <h3>Where the money goes</h3>
+        <div class="split">
+          <table class="ledger" aria-label="Monthly income">
+            <tr><td>Gross income</td><td id="l-gross"></td></tr>
+            <tr><td>Vacancy</td><td id="l-vac"></td></tr>
+            <tr class="total"><td>Effective income</td><td id="l-eff"></td></tr>
+          </table>
+          <table class="ledger" aria-label="Monthly expenses">
+            <tr><td>Operating expenses</td><td id="l-opex"></td></tr>
+            <tr><td>Net operating income</td><td id="l-noi"></td></tr>
+            <tr><td>Mortgage (P&amp;I)</td><td id="l-pi"></td></tr>
+            <tr class="total"><td>Cash flow</td><td id="l-cf"></td></tr>
+          </table>
+        </div>
+      </section>
+
+      <section class="sheet section pro-gate" id="projSection">
+        <h3>10-year projection</h3>
+        <p class="sub">Equity, cumulative cash flow and total return if you hold. Adjust the growth assumptions to stress-test the deal.</p>
+        <div class="lockable">
+          <div class="assume">
+            <label>Appreciation<div class="field"><input id="appr" inputmode="decimal" value="3"><i>%/yr</i></div></label>
+            <label>Rent growth<div class="field"><input id="rentG" inputmode="decimal" value="3"><i>%/yr</i></div></label>
+            <label>Expense growth<div class="field"><input id="expG" inputmode="decimal" value="2.5"><i>%/yr</i></div></label>
+          </div>
+          <div class="scroll"><table class="proj" id="proj"></table></div>
+        </div>
+        <div class="lock no-print"><p>The projection, saved deals and printable reports come with Pro.</p><div><button type="button" class="unlock-btn">Unlock Pro</button></div></div>
+      </section>
+
+      <section class="sheet section pro-gate" id="savedSection">
+        <div class="row" style="justify-content:space-between">
+          <h3>Saved deals</h3>
+          <div class="row no-print lockable">
+            <button type="button" id="saveDeal">Save this deal</button>
+            <button type="button" class="ghost" id="printBtn">Print report</button>
+          </div>
+        </div>
+        <div class="lockable"><div class="saved-list" id="saved"></div></div>
+        <div class="lock no-print"><p>Save every property you look at and compare them side by side.</p><div><button type="button" class="unlock-btn">Unlock Pro</button></div></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>Estimates only, not financial advice. Numbers are calculated in your browser and saved deals stay on this device.</footer>
+</div>
+
+<dialog id="upgrade">
+  <h3>Doorcount Pro</h3>
+  <div class="price">$19 <small>one time, no subscription</small></div>
+  <ul>
+    <li>10-year projection with equity and total return</li>
+    <li>Save and compare unlimited deals</li>
+    <li>Printable one-page report for partners and lenders</li>
+  </ul>
+  <div class="row">
+    <a class="btn" id="buyLink" href="#" target="_blank" rel="noopener">Buy Pro for $19</a>
+    <button type="button" class="ghost" id="closeUpgrade">Not now</button>
+  </div>
+  <p class="note" id="buyNote"></p>
+  <form id="codeForm" style="margin-top:14px">
+    <label>Already paid? Enter the unlock code from your receipt
+      <div class="row"><div class="field" style="flex:1"><input type="text" id="code" placeholder="XXXX-XXXX-XXXX"></div><button type="submit">Unlock</button></div>
+    </label>
+    <p class="msg" id="codeMsg"></p>
+  </form>
+</dialog>
+
+<script>
+// ---- Seller config: set these before going live ----
+const PAYMENT_LINK = "";  // e.g. "https://buy.stripe.com/xxxxxxxx"
+const UNLOCK_HASH = "6dd196a0bcf8632fc32e8d2d828ea4352aa4bd78ea9eedb8ee32cfd85189e978"; // sha-256 of the unlock code
+// -----------------------------------------------------
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const money = (n, dp = 0) => (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const pct = (n, dp = 1) => (isFinite(n) ? (n * 100).toFixed(dp) : "—") + "%";
+const num = id => { const v = parseFloat(String($(id).value).replace(/[^0-9.\-]/g, "")); return isFinite(v) ? v : 0; };
+const FIELDS = ["name","price","rehab","closingPct","arv","downPct","rate","term","rent","other","vacancy","tax","ins","hoa","util","maint","capex","mgmt","appr","rentG","expG"];
+
+function payment(loan, ratePct, years) {
+  if (!years || loan <= 0) return 0;
+  const r = ratePct / 1200, n = years * 12;
+  return r === 0 ? loan / n : loan * r / (1 - Math.pow(1 + r, -n));
+}
+function balanceAfter(loan, ratePct, years, months) {
+  if (!years || loan <= 0) return 0;
+  const r = ratePct / 1200, pi = payment(loan, ratePct, years);
+  if (months >= years * 12) return 0;
+  if (r === 0) return loan - pi * months;
+  const g = Math.pow(1 + r, months);
+  return loan * g - pi * (g - 1) / r;
+}
+
+function analyze(d) {
+  const term = d.term;
+  const down = term ? d.price * d.downPct / 100 : d.price;
+  const loan = d.price - down;
+  const closing = d.price * d.closingPct / 100;
+  const cash = down + closing + d.rehab;
+  const pi = payment(loan, d.rate, term);
+  const gross = d.rent + d.other;
+  const vac = gross * d.vacancy / 100;
+  const eff = gross - vac;
+  const pctExp = d.rent * (d.maint + d.capex + d.mgmt) / 100;
+  const fixed = d.tax / 12 + d.ins / 12 + d.hoa + d.util;
+  const opex = fixed + pctExp;
+  const noi = eff - opex;
+  const cf = noi - pi;
+  // rent where cash flow = 0: rent*(1 - vac% - var%) + other*(1 - vac%) = fixed + pi
+  const k = 1 - d.vacancy / 100 - (d.maint + d.capex + d.mgmt) / 100;
+  const be = k > 0 ? (fixed + pi - d.other * (1 - d.vacancy / 100)) / k : NaN;
+  return { down, loan, closing, cash, pi, gross, vac, eff, opex, noi, cf,
+    coc: cash > 0 ? cf * 12 / cash : NaN, cap: d.price > 0 ? noi * 12 / d.price : NaN,
+    dscr: pi > 0 ? noi / pi : Infinity, onepct: d.price > 0 ? d.rent / d.price : NaN, be };
+}
+
+function readDeal() {
+  const d = {};
+  FIELDS.forEach(f => d[f] = f === "name" ? $(f).value : num(f));
+  return d;
+}
+
+function project(d, a) {
+  const rows = [];
+  const value0 = d.arv || d.price;
+  let cum = 0;
+  for (let y = 1; y <= 10; y++) {
+    const rg = Math.pow(1 + d.rentG / 100, y - 1), eg = Math.pow(1 + d.expG / 100, y - 1);
+    const gross = (d.rent + d.other) * rg;
+    const eff = gross * (1 - d.vacancy / 100);
+    const opex = (d.tax / 12 + d.ins / 12 + d.hoa + d.util) * eg + d.rent * rg * (d.maint + d.capex + d.mgmt) / 100;
+    const cf = (eff - opex - a.pi) * 12;
+    cum += cf;
+    const value = value0 * Math.pow(1 + d.appr / 100, y);
+    const bal = balanceAfter(a.loan, d.rate, d.term, y * 12);
+    const equity = value - bal;
+    const profit = cum + equity - a.cash;
+    const ann = a.cash > 0 && (a.cash + profit) > 0 ? Math.pow((a.cash + profit) / a.cash, 1 / y) - 1 : NaN;
+    rows.push({ y, cf, cum, value, bal, equity, profit, ann });
+  }
+  return rows;
+}
+
+function tone(el, cls) { el.classList.remove("good", "warn", "bad"); if (cls) el.classList.add(cls); }
+
+function render() {
+  const d = readDeal(), a = analyze(d);
+  $("cf").textContent = money(a.cf);
+  $("cf").style.color = a.cf >= 0 ? "var(--good)" : "var(--bad)";
+  $("cfYear").textContent = money(a.cf * 12) + " a year";
+  const chip = $("chip");
+  chip.className = "chip";
+  if (a.cf >= 150 && a.coc >= 0.08) { chip.textContent = "Strong deal"; chip.classList.add("good"); }
+  else if (a.cf > 0) { chip.textContent = "Thin margins"; chip.classList.add("warn"); }
+  else { chip.textContent = "Loses money"; chip.classList.add("bad"); }
+  $("coc").textContent = pct(a.coc); tone($("coc"), a.coc >= 0.08 ? "good" : a.coc > 0 ? "warn" : "bad");
+  $("cap").textContent = pct(a.cap); tone($("cap"), a.cap >= 0.06 ? "good" : a.cap >= 0.04 ? "warn" : "bad");
+  $("dscr").textContent = isFinite(a.dscr) ? a.dscr.toFixed(2) : "No loan"; tone($("dscr"), a.dscr >= 1.25 ? "good" : a.dscr >= 1 ? "warn" : "bad");
+  $("onepct").textContent = pct(a.onepct, 2); tone($("onepct"), a.onepct >= 0.01 ? "good" : a.onepct >= 0.007 ? "warn" : "bad");
+  $("cash").textContent = money(a.cash);
+  $("be").textContent = isFinite(a.be) ? money(a.be) : "—";
+  $("l-gross").textContent = money(a.gross);
+  $("l-vac").textContent = money(-a.vac);
+  $("l-eff").textContent = money(a.eff);
+  $("l-opex").textContent = money(-a.opex);
+  $("l-noi").textContent = money(a.noi);
+  $("l-pi").textContent = money(-a.pi);
+  $("l-cf").textContent = money(a.cf);
+
+  const rows = project(d, a);
+  $("proj").innerHTML = "<thead><tr><th>Year</th><th>Cash flow</th><th>Cumulative</th><th>Value</th><th>Loan</th><th>Equity</th><th>Total profit</th><th>Annual return</th></tr></thead><tbody>" +
+    rows.map(r => `<tr class="${r.y === 5 || r.y === 10 ? "hl" : ""}"><td>${r.y}</td><td>${money(r.cf)}</td><td>${money(r.cum)}</td><td>${money(r.value)}</td><td>${money(r.bal)}</td><td>${money(r.equity)}</td><td>${money(r.profit)}</td><td>${pct(r.ann)}</td></tr>`).join("") + "</tbody>";
+  store.set("doorcount.draft", d);
+  return { d, a };
+}
+
+// ---- Pro unlock ----
+function isPro() { return store.get("doorcount.pro", false) === true; }
+function applyPlan() {
+  const pro = isPro();
+  document.querySelectorAll(".pro-gate").forEach(s => s.classList.toggle("locked", !pro));
+  $("planPill").textContent = pro ? "Pro" : "Free";
+  $("planPill").classList.toggle("pro", pro);
+  $("openUpgrade").hidden = pro;
+}
+async function sha256(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function openUpgrade() {
+  const dlg = $("upgrade");
+  if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. Your unlock code appears on the receipt page."; }
+  else { $("buyLink").hidden = true; $("buyNote").textContent = "Checkout is not open yet. This is a preview build."; }
+  $("codeMsg").textContent = "";
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+}
+$("openUpgrade").addEventListener("click", openUpgrade);
+document.querySelectorAll(".unlock-btn").forEach(b => b.addEventListener("click", openUpgrade));
+$("closeUpgrade").addEventListener("click", () => $("upgrade").close());
+$("codeForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("codeMsg");
+  const code = $("code").value.trim().toUpperCase();
+  if (!code) { msg.className = "msg err"; msg.textContent = "Enter the code shown on your receipt."; return; }
+  try {
+    if (await sha256(code) === UNLOCK_HASH) {
+      store.set("doorcount.pro", true); applyPlan();
+      msg.className = "msg ok"; msg.textContent = "Pro unlocked on this device.";
+      setTimeout(() => $("upgrade").close(), 900);
+    } else { msg.className = "msg err"; msg.textContent = "That code doesn't match. Check for typos, including the dashes."; }
+  } catch { msg.className = "msg err"; msg.textContent = "This browser can't verify codes. Try opening the page over https."; }
+});
+
+// ---- Saved deals ----
+function renderSaved() {
+  const list = store.get("doorcount.deals", []);
+  const el = $("saved");
+  if (!list.length) { el.innerHTML = '<p class="empty">No saved deals yet. Enter a property and press Save this deal to compare it with others.</p>'; return; }
+  el.innerHTML = '<div class="saved-row saved-head"><b>Deal</b><span>Cash flow</span><span>CoC</span><span>Cap rate</span><span></span></div>' +
+    list.map((s, i) => { const a = analyze(s); return `<div class="saved-row"><b title="${esc(s.name)}">${esc(s.name || "Untitled deal")}</b><span>${money(a.cf)}</span><span>${pct(a.coc)}</span><span>${pct(a.cap)}</span><div class="acts no-print"><button type="button" class="ghost" data-load="${i}">Open</button><button type="button" class="ghost" data-del="${i}">Remove</button></div></div>`; }).join("");
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function fill(d) { FIELDS.forEach(f => { if (d[f] != null) $(f).value = d[f]; }); render(); }
+$("saveDeal").addEventListener("click", () => {
+  if (!isPro()) return openUpgrade();
+  const d = readDeal(), list = store.get("doorcount.deals", []);
+  const i = list.findIndex(x => x.name === d.name);
+  if (i >= 0) list[i] = d; else list.unshift(d);
+  store.set("doorcount.deals", list); renderSaved();
+});
+$("saved").addEventListener("click", e => {
+  const t = e.target, list = store.get("doorcount.deals", []);
+  if (t.dataset.load) fill(list[+t.dataset.load]);
+  if (t.dataset.del) { list.splice(+t.dataset.del, 1); store.set("doorcount.deals", list); renderSaved(); }
+});
+// Printing is unavailable when the page is embedded in another site's frame.
+if (window.self !== window.top) $("printBtn").hidden = true;
+$("printBtn").addEventListener("click", () => window.print());
+
+$("deal").addEventListener("input", render);
+$("projSection").addEventListener("input", render);
+const draft = store.get("doorcount.draft", null);
+if (draft) fill(draft); else render();
+applyPlan(); renderSaved();
+</script>
+</body>
+</html>
