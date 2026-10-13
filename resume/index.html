@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resume Once: pay once resume builder</title>
+<meta name="description" content="Build a clean, ATS-friendly resume and download a PDF. Free to use. Pro is $9 once, never a subscription.">
+<style>
+:root{
+  --bg:#f6f5f2; --panel:#ffffff; --ink:#1d1d1f; --muted:#62626a; --line:#e2e0da;
+  --accent:#1f6f5c; --accent-ink:#ffffff; --soft:#e8f2ef; --warn:#8a5a00;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141516; --panel:#1d1f21; --ink:#ececee; --muted:#a3a3ab; --line:#33363a; --accent:#4fb69a; --accent-ink:#0d1f1a; --soft:#1e2e2a; --warn:#e3b04b; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+header.top{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{font-weight:700;letter-spacing:-.01em}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.hero{max-width:1200px;margin:0 auto;padding:18px 16px 4px}
+.hero h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+.hero p{margin:0;color:var(--muted)}
+.tabs{display:none;gap:8px;padding:12px 16px 0;max-width:1200px;margin:0 auto}
+.tabs button{flex:1}
+.tabs button.on{background:var(--soft);border-color:var(--accent);font-weight:600}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;max-width:1200px;margin:0 auto;padding:14px 16px 40px}
+.editor{min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.card h2{font-size:15px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,textarea,select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:9px 10px}
+textarea{min-height:84px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.entry{border:1px dashed var(--line);border-radius:10px;padding:10px;margin-top:10px}
+.entry .del{float:right}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.preview-wrap{position:sticky;top:76px;align-self:start;min-width:0}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.toolbar select{width:auto}
+.pro-tag{font-size:11px;background:var(--soft);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:600}
+.sheet-scroller{overflow:hidden;border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.sheet-scale{transform-origin:top left}
+
+/* ---------- the resume page itself ---------- */
+.sheet{width:8.5in;min-height:11in;background:#fff;color:#1a1a1a;padding:.6in .65in;font-family:Georgia,"Times New Roman",serif;font-size:10.5pt;line-height:1.38;position:relative}
+.sheet h1{font-size:22pt;margin:0;font-weight:700;letter-spacing:-.01em}
+.sheet .role{font-size:11.5pt;color:#444;margin-top:2px}
+.sheet .contact{font-size:9.5pt;color:#444;margin-top:6px}
+.sheet .contact span+span:before{content:" · ";color:#999}
+.sheet h3{font-size:10pt;text-transform:uppercase;letter-spacing:.09em;margin:16px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb}
+.sheet .item{margin-bottom:9px;break-inside:avoid}
+.sheet .item-head{display:flex;justify-content:space-between;gap:12px}
+.sheet .item-head b{font-weight:700}
+.sheet .when{color:#555;white-space:nowrap;font-size:9.5pt}
+.sheet .sub{color:#444;font-style:italic}
+.sheet ul{margin:4px 0 0 0;padding-left:16px}
+.sheet li{margin:1px 0}
+.sheet p{margin:0}
+.sheet .skills{margin:0}
+.sheet .wm{position:absolute;left:0;right:0;bottom:.25in;text-align:center;font:8.5pt -apple-system,Helvetica,Arial,sans-serif;color:#888}
+.sheet.letter{font-size:11pt;line-height:1.55}
+.sheet.letter .date{margin:24px 0 18px;color:#444}
+.sheet.letter p{margin:0 0 12px}
+
+/* Modern (Pro) */
+.sheet.t-modern{font-family:-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:10pt;padding-top:0}
+.sheet.t-modern .bar{margin:0 -.65in 14px;padding:.5in .65in .3in;background:#1f4e5f;color:#fff}
+.sheet.t-modern .bar .role,.sheet.t-modern .bar .contact{color:#d8e6ea}
+.sheet.t-modern .bar .contact span+span:before{color:#9fbac2}
+.sheet.t-modern h3{color:#1f4e5f;border-bottom:2px solid #1f4e5f}
+/* Compact (Pro) */
+.sheet.t-compact{font-family:-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:9.5pt;line-height:1.3;padding:.45in .5in}
+.sheet.t-compact header{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;border-bottom:2px solid #222;padding-bottom:6px}
+.sheet.t-compact .contact{text-align:right;margin:0}
+.sheet.t-compact h3{border:0;margin:11px 0 4px;color:#222}
+.sheet.t-compact .item{margin-bottom:6px}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.open{display:flex}
+.modal .box{background:var(--panel);border-radius:16px;max-width:440px;width:100%;padding:20px;border:1px solid var(--line)}
+.modal h2{margin:0 0 6px;font-size:19px}
+.modal ul{padding-left:18px;margin:10px 0}
+.price{font-size:28px;font-weight:700;margin:6px 0 2px}
+.msg{font-size:13px;margin-top:8px;min-height:18px}
+.msg.err{color:#c0392b}.msg.ok{color:var(--accent)}
+footer{max-width:1200px;margin:0 auto;padding:0 16px 30px;color:var(--muted);font-size:12px}
+
+@media (max-width:860px){
+  .tabs{display:flex}
+  main{grid-template-columns:minmax(0,1fr)}
+  main.show-edit .preview-wrap{display:none}
+  main.show-preview .editor{display:none}
+  .preview-wrap{position:static}
+  header.top .hide-sm{display:none}
+}
+@media (max-width:420px){ .row{grid-template-columns:1fr} }
+
+@media print{
+  @page{size:letter;margin:0}
+  html,body{background:#fff}
+  body>*:not(main){display:none!important}
+  main{display:block;padding:0;max-width:none}
+  .editor,.toolbar{display:none!important}
+  .preview-wrap{display:block!important;position:static}
+  .sheet-scroller{box-shadow:none;overflow:visible;border-radius:0}
+  .sheet-scale{transform:none!important;height:auto!important}
+  .sheet{min-height:auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet.hide-print{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Resume Once<small>Pay once. Never a subscription.</small></div>
+  <div style="display:flex;gap:8px">
+    <button class="btn hide-sm" id="exampleBtn">Fill example</button>
+    <button class="btn" id="proBtn">Get Pro</button>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>Make a clean resume and download it as a PDF.</h1>
+  <p>Free to build. No sign up. Your info stays on your device. Pro is <b>$9 once</b> for every template, a cover letter and no footer.</p>
+</section>
+
+<div class="tabs"><button class="btn on" data-tab="edit">1. Fill in</button><button class="btn" data-tab="preview">2. Preview &amp; download</button></div>
+
+<main class="show-edit">
+  <section class="editor">
+    <div class="card">
+      <h2>About you <button class="btn small" id="exampleBtn2">Fill example</button></h2>
+      <div class="row">
+        <div><label for="name">Full name</label><input id="name" data-k="name" autocomplete="name"></div>
+        <div><label for="title">Job title you want</label><input id="title" data-k="title"></div>
+      </div>
+      <div class="row">
+        <div><label for="email">Email</label><input id="email" data-k="email" type="email" autocomplete="email"></div>
+        <div><label for="phone">Phone</label><input id="phone" data-k="phone" autocomplete="tel"></div>
+      </div>
+      <div class="row">
+        <div><label for="location">City, State</label><input id="location" data-k="location"></div>
+        <div><label for="link">Website or LinkedIn</label><input id="link" data-k="link"></div>
+      </div>
+      <label for="summary">Short summary (2 to 3 sentences)</label>
+      <textarea id="summary" data-k="summary"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Work experience <button class="btn small" data-add="jobs">+ Add job</button></h2>
+      <div id="jobs"></div>
+      <div class="hint">Put one achievement per line. Start each with a verb and add a number if you can, like "Cut wait times by 20%".</div>
+    </div>
+
+    <div class="card">
+      <h2>Education <button class="btn small" data-add="edu">+ Add school</button></h2>
+      <div id="edu"></div>
+    </div>
+
+    <div class="card">
+      <h2>Skills</h2>
+      <label for="skills">Separate with commas</label>
+      <textarea id="skills" data-k="skills" style="min-height:60px"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Cover letter <span class="pro-tag">PRO</span></h2>
+      <div class="row">
+        <div><label for="clCompany">Company</label><input id="clCompany" data-k="clCompany"></div>
+        <div><label for="clManager">Hiring manager (optional)</label><input id="clManager" data-k="clManager"></div>
+      </div>
+      <label for="clBody">Letter body</label>
+      <textarea id="clBody" data-k="clBody" style="min-height:140px"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn small" id="clDraft">Write a starter draft for me</button>
+      </div>
+      <div class="hint">The starter draft uses your title, summary and latest job. Edit it to fit the role.</div>
+    </div>
+
+    <button class="btn primary" id="toPreview" style="width:100%">Preview &amp; download</button>
+  </section>
+
+  <section class="preview-wrap">
+    <div class="toolbar">
+      <select id="doc" aria-label="Document"><option value="resume">Resume</option><option value="letter">Cover letter (Pro)</option></select>
+      <select id="tpl" aria-label="Template"><option value="classic">Classic</option><option value="modern">Modern (Pro)</option><option value="compact">Compact (Pro)</option></select>
+      <button class="btn primary" id="dl">Download PDF</button>
+    </div>
+    <div class="sheet-scroller" id="scroller"><div class="sheet-scale" id="scale"><div class="sheet" id="sheet"></div></div></div>
+    <div class="hint" id="dlHint">Tap Download PDF, then choose "Save as PDF" (on iPhone: Share, then Save to Files).</div>
+  </section>
+</main>
+
+<footer>Resume Once keeps everything in this browser. Nothing is uploaded. <a href="../" style="color:inherit">Also by us: Doorcount</a></footer>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="box">
+    <h2 id="mTitle">Resume Once Pro</h2>
+    <div class="price">$9 <span style="font-size:14px;font-weight:400;color:var(--muted)">one time</span></div>
+    <ul>
+      <li>Modern and Compact templates</li>
+      <li>Cover letter with a starter draft</li>
+      <li>No "made with" footer on your PDF</li>
+      <li>No subscription, no auto-renew, ever</li>
+    </ul>
+    <a class="btn primary" id="buyLink" href="#" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none" hidden>Buy Pro for $9</a>
+    <div class="hint" id="buyNote">Checkout is opening soon. Check back shortly.</div>
+    <label for="code" style="margin-top:14px">Already paid? Enter your unlock code</label>
+    <div style="display:flex;gap:8px"><input id="code" placeholder="ONCE-XXXX-XXXX" autocapitalize="characters"><button class="btn" id="unlock">Unlock</button></div>
+    <div class="msg" id="msg"></div>
+    <button class="btn" id="closeModal" style="margin-top:10px;width:100%">Close</button>
+  </div>
+</div>
+
+<script>
+const PAYMENT_LINK = "";  // e.g. "https://buy.stripe.com/xxxxxxxx"
+const UNLOCK_HASH = "38c0945076915e119c21a818ce363cfffcfacbda036336d4b12b566a35b62f5d"; // sha-256 of the unlock code
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const EMPTY = { name:"", title:"", email:"", phone:"", location:"", link:"", summary:"", skills:"",
+  jobs:[{role:"",company:"",when:"",bullets:""}], edu:[{school:"",degree:"",when:""}],
+  clCompany:"", clManager:"", clBody:"" };
+const EXAMPLE = {
+  name:"Amina Rahman", title:"Customer Success Specialist", email:"amina.rahman@email.com", phone:"(555) 214-8830",
+  location:"Dearborn, MI", link:"linkedin.com/in/aminarahman",
+  summary:"Customer success specialist with 4 years helping software customers get set up and stay happy. Known for clear writing, calm problem solving and turning feedback into product fixes.",
+  skills:"Customer onboarding, Zendesk, HubSpot, Process documentation, Data entry, Arabic and English",
+  jobs:[
+    {role:"Customer Success Specialist", company:"Brightline Software, Detroit MI", when:"2023 to now",
+     bullets:"Onboarded 120+ small business accounts with a 96% first-year renewal rate\nCut average ticket reply time from 9 hours to 3 by building a saved-replies library\nRan monthly feedback calls that led to 5 shipped product improvements"},
+    {role:"Support Representative", company:"Metro Wireless, Dearborn MI", when:"2021 to 2023",
+     bullets:"Handled 60+ customer calls a day with a 4.8 out of 5 satisfaction score\nTrained 8 new hires on billing systems and store procedures"}
+  ],
+  edu:[{school:"Wayne State University", degree:"B.A. Communication", when:"2021"}],
+  clCompany:"", clManager:"", clBody:""
+};
+
+let data = Object.assign(structuredClone(EMPTY), store.get("ro.data", {}));
+let pro = store.get("ro.pro", false);
+
+function save(){ store.set("ro.data", data); }
+
+function fillInputs(){
+  document.querySelectorAll("[data-k]").forEach(el => { el.value = data[el.dataset.k] || ""; });
+  renderList("jobs"); renderList("edu");
+}
+
+const FIELDS = {
+  jobs: [["role","Job title"],["company","Company, City"],["when","Dates (e.g. 2022 to now)"],["bullets","Achievements (one per line)",true]],
+  edu:  [["school","School"],["degree","Degree or certificate"],["when","Year"]]
+};
+function renderList(key){
+  const box = $(key); box.innerHTML = "";
+  data[key].forEach((item, i) => {
+    const d = document.createElement("div"); d.className = "entry";
+    d.innerHTML = `<button class="btn small del" data-del="${key}" data-i="${i}" aria-label="Remove">Remove</button>` +
+      FIELDS[key].map(([f, lbl, big]) => `<label>${lbl}</label>` + (big
+        ? `<textarea data-list="${key}" data-i="${i}" data-f="${f}">${esc(item[f])}</textarea>`
+        : `<input data-list="${key}" data-i="${i}" data-f="${f}" value="${esc(item[f])}">`)).join("");
+    box.appendChild(d);
+  });
+}
+
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.k) data[t.dataset.k] = t.value;
+  else if (t.dataset.list) data[t.dataset.list][+t.dataset.i][t.dataset.f] = t.value;
+  else return;
+  save(); render();
+});
+document.addEventListener("click", e => {
+  const t = e.target;
+  if (t.dataset.add) {
+    const blank = t.dataset.add === "jobs" ? {role:"",company:"",when:"",bullets:""} : {school:"",degree:"",when:""};
+    data[t.dataset.add].push(blank); save(); renderList(t.dataset.add); render();
+  } else if (t.dataset.del) {
+    data[t.dataset.del].splice(+t.dataset.i, 1); save(); renderList(t.dataset.del); render();
+  }
+});
+
+function contactLine(){
+  return ["email","phone","location","link"].map(k => data[k]).filter(Boolean).map(v => `<span>${esc(v)}</span>`).join("");
+}
+function resumeHTML(tpl){
+  const jobs = data.jobs.filter(j => j.role || j.company);
+  const edu = data.edu.filter(x => x.school || x.degree);
+  const skills = data.skills.split(",").map(s => s.trim()).filter(Boolean);
+  const head = `<h1>${esc(data.name || "Your Name")}</h1>${data.title ? `<div class="role">${esc(data.title)}</div>` : ""}`;
+  let top;
+  if (tpl === "modern") top = `<div class="bar">${head}<div class="contact">${contactLine()}</div></div>`;
+  else if (tpl === "compact") top = `<header><div>${head}</div><div class="contact">${contactLine().replace(/<\/span><span>/g, "</span><br><span>")}</div></header>`;
+  else top = `${head}<div class="contact">${contactLine()}</div>`;
+  let h = top;
+  if (data.summary) h += `<h3>Summary</h3><p>${esc(data.summary)}</p>`;
+  if (jobs.length) h += `<h3>Experience</h3>` + jobs.map(j => {
+    const b = (j.bullets || "").split("\n").map(s => s.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
+    return `<div class="item"><div class="item-head"><div><b>${esc(j.role)}</b>${j.company ? `<div class="sub">${esc(j.company)}</div>` : ""}</div><div class="when">${esc(j.when)}</div></div>${b.length ? `<ul>${b.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>`;
+  }).join("");
+  if (edu.length) h += `<h3>Education</h3>` + edu.map(x => `<div class="item"><div class="item-head"><div><b>${esc(x.degree)}</b>${x.school ? `<div class="sub">${esc(x.school)}</div>` : ""}</div><div class="when">${esc(x.when)}</div></div></div>`).join("");
+  if (skills.length) h += `<h3>Skills</h3><p class="skills">${skills.map(esc).join(" · ")}</p>`;
+  return h;
+}
+function letterHTML(){
+  const today = new Date().toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"});
+  const greet = data.clManager ? `Dear ${esc(data.clManager)},` : "Dear Hiring Manager,";
+  const paras = (data.clBody || "Write your letter in the Cover letter box, or tap \"Write a starter draft for me\".").split(/\n\s*\n|\n/).map(p => p.trim()).filter(Boolean);
+  return `<h1>${esc(data.name || "Your Name")}</h1><div class="contact">${contactLine()}</div>
+    <div class="date">${today}${data.clCompany ? `<br>${esc(data.clCompany)}` : ""}</div>
+    <p>${greet}</p>${paras.map(p => `<p>${esc(p)}</p>`).join("")}<p>Sincerely,<br>${esc(data.name || "Your Name")}</p>`;
+}
+
+function render(){
+  const doc = $("doc").value, tpl = $("tpl").value;
+  const sheet = $("sheet");
+  sheet.className = "sheet " + (doc === "letter" ? "letter" : "t-" + tpl);
+  sheet.innerHTML = (doc === "letter" ? letterHTML() : resumeHTML(tpl)) +
+    (pro ? "" : `<div class="wm">Made free with Resume Once · dxpugsalotxd-hub.github.io/doorcount/resume</div>`);
+  fit();
+}
+function fit(){
+  const sc = $("scroller"), s = $("scale"), sheet = $("sheet");
+  const w = sc.clientWidth || 600, k = Math.min(1, w / sheet.offsetWidth);
+  s.style.transform = `scale(${k})`;
+  s.style.height = sheet.offsetHeight * k + "px";
+  sc.style.height = sheet.offsetHeight * k + "px";
+}
+window.addEventListener("resize", fit);
+
+function needPro(what){
+  if (pro) return false;
+  openModal(`${what} is part of Pro.`); return true;
+}
+$("tpl").addEventListener("change", e => { if (e.target.value !== "classic" && needPro("This template")) e.target.value = "classic"; render(); });
+$("doc").addEventListener("change", e => { if (e.target.value === "letter" && needPro("The cover letter")) e.target.value = "resume"; render(); });
+
+$("clDraft").addEventListener("click", () => {
+  if (needPro("The cover letter")) return;
+  const job = data.jobs.find(j => j.role) || {};
+  const firstWin = (job.bullets || "").split("\n").map(s => s.trim()).find(Boolean);
+  const company = data.clCompany || "your company";
+  data.clBody = [
+    `I am writing to apply for the ${data.title || "open"} role at ${company}. ${data.summary || ""}`.trim(),
+    job.role ? `In my current role as ${job.role}${job.company ? " at " + job.company.split(",")[0] : ""}, I ${firstWin ? firstWin.charAt(0).toLowerCase() + firstWin.slice(1).replace(/\.$/, "") : "take ownership of my work and deliver results"}. I would bring the same focus to ${company}.` : `I would bring focus, reliability and a willingness to learn to ${company}.`,
+    `I would welcome the chance to talk about how I can help your team. Thank you for your time and consideration.`
+  ].join("\n\n");
+  $("clBody").value = data.clBody; save();
+  $("doc").value = "letter"; render();
+});
+
+function fillExample(){
+  if (Object.values(data).some(v => typeof v === "string" && v.trim()) && !confirm("Replace what you typed with the example?")) return;
+  data = structuredClone(EXAMPLE); save(); fillInputs(); render();
+}
+$("exampleBtn").addEventListener("click", fillExample);
+$("exampleBtn2").addEventListener("click", fillExample);
+
+function setTab(t){
+  document.querySelector("main").className = "show-" + t;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  window.scrollTo(0, 0); fit();
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+$("toPreview").addEventListener("click", () => { if (window.matchMedia("(max-width:860px)").matches) setTab("preview"); else $("dl").scrollIntoView({behavior:"smooth"}); });
+
+$("dl").addEventListener("click", () => {
+  const old = document.title;
+  document.title = (data.name || "Resume").replace(/[^\w\- ]+/g, "") + ($("doc").value === "letter" ? " Cover Letter" : " Resume");
+  window.print();
+  setTimeout(() => { document.title = old; }, 1000);
+});
+
+// ---- Pro ----
+function openModal(reason){
+  $("msg").textContent = reason || ""; $("msg").className = "msg";
+  $("modal").classList.add("open");
+}
+$("proBtn").addEventListener("click", () => openModal(pro ? "Pro is unlocked on this device. Thank you!" : ""));
+$("closeModal").addEventListener("click", () => $("modal").classList.remove("open"));
+$("modal").addEventListener("click", e => { if (e.target.id === "modal") $("modal").classList.remove("open"); });
+if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. Your unlock code appears on the page after you pay."; }
+
+async function sha256(s){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+$("unlock").addEventListener("click", async () => {
+  const code = $("code").value.trim().toUpperCase();
+  if (await sha256(code) === UNLOCK_HASH) {
+    pro = true; store.set("ro.pro", true); updatePro();
+    $("msg").textContent = "Unlocked. Enjoy Pro!"; $("msg").className = "msg ok"; render();
+  } else { $("msg").textContent = "That code didn't match. Check it against your receipt page."; $("msg").className = "msg err"; }
+});
+function updatePro(){ $("proBtn").textContent = pro ? "Pro ✓" : "Get Pro"; }
+
+fillInputs(); updatePro(); render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+</script>
+</body>
+</html>
