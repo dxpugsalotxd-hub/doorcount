@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deposit Back: get your rental deposit back</title>
+<meta name="description" content="Walk through your rental room by room, take date-stamped photos, and get a move-in vs move-out report plus a deposit request letter. Works on your phone. Nothing is uploaded.">
+<style>
+:root{
+  --bg:#f5f4f0; --panel:#ffffff; --ink:#1c1d1f; --muted:#62636b; --line:#e1dfd8;
+  --accent:#2c5fa8; --accent-ink:#ffffff; --soft:#e8eef8; --good:#1f7a4d; --wear:#a06a00; --bad:#b3261e;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#131416; --panel:#1c1e21; --ink:#ececef; --muted:#a2a3ab; --line:#33363b; --accent:#6f9ee6; --accent-ink:#0b1730; --soft:#1d2635; --good:#4cc38a; --wear:#e0b04a; --bad:#f2786f; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+header.top{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{font-weight:700;letter-spacing:-.01em}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn.block{display:block;width:100%;text-align:center}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.hero{padding:18px 0 4px}
+.hero h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+.hero p{margin:0;color:var(--muted)}
+.tabs{display:flex;gap:8px;padding:14px 0 4px;position:sticky;top:61px;background:var(--bg);z-index:4}
+.tabs button{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 4px;cursor:pointer;font-size:14px}
+.tabs button.on{background:var(--soft);border-color:var(--accent);font-weight:600}
+section.view{display:none;padding:10px 0 40px}
+section.view.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,textarea,select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:9px 10px;min-width:0}
+textarea{min-height:70px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.phase{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;margin-bottom:12px}
+.phase button{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 6px;cursor:pointer;font-weight:600;color:var(--muted)}
+.phase button.on{background:var(--accent);color:var(--accent-ink)}
+.room h2 .count{font-size:12px;font-weight:400;color:var(--muted)}
+.room summary{list-style:none;cursor:pointer}
+.room summary::-webkit-details-marker{display:none}
+.room summary h2{margin:0}
+.room summary h2:after{content:"▾";color:var(--muted);font-size:13px}
+.room[open] summary h2:after{content:"▴"}
+.item{border-top:1px solid var(--line);padding:10px 0}
+.item:first-of-type{border-top:0}
+.item-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.item-name{font-weight:600}
+.chips{display:flex;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 10px;font-size:13px;cursor:pointer}
+.chip.on.c-good{background:var(--good);border-color:var(--good);color:#fff}
+.chip.on.c-wear{background:var(--wear);border-color:var(--wear);color:#fff}
+.chip.on.c-bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.was{font-size:12px;color:var(--muted);margin-top:4px}
+.note{margin-top:6px;font-size:14px;padding:7px 9px}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;margin-top:10px}
+.ph{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg);border:1px solid var(--line)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:13px;line-height:22px;padding:0;cursor:pointer}
+.ph .tag{position:absolute;left:3px;bottom:3px;font-size:10px;background:rgba(0,0,0,.6);color:#fff;border-radius:4px;padding:1px 4px}
+.addph{display:flex;align-items:center;justify-content:center;flex-direction:column;aspect-ratio:1;border:1.5px dashed var(--accent);border-radius:8px;color:var(--accent);font-size:12px;cursor:pointer;text-align:center;padding:4px}
+.addph b{font-size:22px;line-height:1}
+.room-tools{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pro-tag{font-size:11px;background:var(--soft);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:600;vertical-align:middle}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.stat div{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:12px;color:var(--muted)}
+.actions{display:grid;gap:8px}
+.msg{font-size:13px;margin-top:8px}
+.msg.ok{color:var(--good)} .msg.err{color:var(--bad)}
+footer.site{color:var(--muted);font-size:12px;text-align:center;padding:10px 16px 30px}
+footer.site a{color:inherit}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.open{display:flex}
+.modal .box{background:var(--panel);border-radius:16px;padding:18px;max-width:400px;width:100%;max-height:90vh;overflow:auto}
+.modal h2{margin:0 0 4px;font-size:18px}
+.modal .price{font-size:28px;font-weight:700;margin:6px 0}
+.modal ul{padding-left:18px;margin:8px 0 14px}
+
+/* document preview + print */
+#docWrap{display:none;margin-top:14px}
+#docWrap.on{display:block}
+.doc{background:#fff;color:#1a1a1a;border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.12);padding:28px 24px;font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+.doc h1{font-size:22px;margin:0 0 4px}
+.doc h3{font-size:14px;margin:20px 0 6px;padding-bottom:3px;border-bottom:1px solid #bbb;break-after:avoid}
+.doc .meta{color:#444;font-size:12px}
+.doc table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+.doc th,.doc td{border:1px solid #ccc;padding:5px 6px;text-align:left;vertical-align:top}
+.doc th{background:#f1f1f1}
+.doc .g,.doc .w,.doc .d{white-space:nowrap} .doc .g{color:#1f7a4d;font-weight:600} .doc .w{color:#8a5a00;font-weight:600} .doc .d{color:#b3261e;font-weight:600}
+.doc .worse{background:#fdecea}
+.doc .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.doc figure{margin:0;break-inside:avoid}
+.doc figure img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;border:1px solid #ddd}
+.doc figcaption{font-size:10px;color:#555;margin-top:2px}
+.doc .letter p{margin:0 0 12px;white-space:pre-wrap}
+.doc .wm{margin-top:24px;text-align:center;font-size:11px;color:#888;border-top:1px solid #eee;padding-top:8px}
+.doc .room-block{break-inside:auto}
+@media print{
+  @page{margin:.5in}
+  body{background:#fff}
+  body > *:not(#printRoot){display:none !important}
+  #printRoot{display:block !important}
+  #printRoot .doc{box-shadow:none;padding:0;border-radius:0}
+}
+#printRoot{display:none}
+@media (max-width:520px){
+  .row{grid-template-columns:1fr}
+  .doc{padding:18px 14px}
+  .doc .grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Deposit Back<small>Prove it. Get your deposit back.</small></div>
+  <button class="btn primary small" id="proBtn">Get Pro</button>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Landlord keeping your deposit? Not this time.</h1>
+    <p>Walk through your rental room by room on your phone, snap date-stamped photos, and get a clean move-in vs move-out report and a deposit request letter. Everything stays on your phone.</p>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="on" data-view="v-home">1. Details</button>
+    <button data-view="v-walk">2. Walkthrough</button>
+    <button data-view="v-out">3. Report</button>
+  </nav>
+
+  <!-- DETAILS -->
+  <section class="view on" id="v-home">
+    <div class="card">
+      <h2>The rental</h2>
+      <label for="address">Rental address</label>
+      <input id="address" placeholder="221 Oak St, Apt 4B, Columbus, OH 43215">
+      <div class="row">
+        <div><label for="moveIn">Move-in date</label><input id="moveIn" type="date"></div>
+        <div><label for="moveOut">Move-out date</label><input id="moveOut" type="date"></div>
+      </div>
+      <div class="row">
+        <div><label for="deposit">Deposit paid ($)</label><input id="deposit" inputmode="decimal" placeholder="1500"></div>
+        <div><label for="deadline">Days landlord has to return it</label><input id="deadline" inputmode="numeric" placeholder="30"></div>
+      </div>
+      <div class="hint">Most US states give landlords 14 to 30 days. Search "security deposit return deadline" plus your state if you're not sure.</div>
+    </div>
+    <div class="card">
+      <h2>People</h2>
+      <div class="row">
+        <div><label for="tenant">Your name</label><input id="tenant" placeholder="Your full name"></div>
+        <div><label for="landlord">Landlord or manager</label><input id="landlord" placeholder="Name or company"></div>
+      </div>
+      <label for="landlordAddr">Landlord's mailing address</label>
+      <input id="landlordAddr" placeholder="Where the letter goes">
+      <label for="forward">Your forwarding address</label>
+      <input id="forward" placeholder="Where the deposit should be sent">
+    </div>
+    <button class="btn primary block" id="toWalk">Start the walkthrough</button>
+    <div class="card" style="margin-top:14px">
+      <h2>How it works</h2>
+      <ol style="margin:4px 0 0;padding-left:20px">
+        <li><b>Move-in day:</b> go room by room, mark each item and take photos. Every photo is stamped with the date and time.</li>
+        <li><b>Move-out day:</b> switch to Move-out and do it again.</li>
+        <li><b>Report:</b> get a side-by-side comparison PDF and a ready-to-send letter asking for your deposit.</li>
+      </ol>
+      <div class="hint">Already moved out without move-in photos? Do the move-out walkthrough anyway. Proof of how you left it is still your strongest evidence.</div>
+    </div>
+  </section>
+
+  <!-- WALKTHROUGH -->
+  <section class="view" id="v-walk">
+    <div class="phase" role="tablist">
+      <button data-phase="in" class="on">Move-in</button>
+      <button data-phase="out">Move-out</button>
+    </div>
+    <div id="rooms"></div>
+    <div class="card">
+      <h2>Add a room</h2>
+      <div style="display:flex;gap:8px"><input id="newRoom" placeholder="e.g. Bedroom 3, Laundry, Balcony"><button class="btn" id="addRoom">Add</button></div>
+    </div>
+    <div class="hint" id="photoNote"></div>
+  </section>
+
+  <!-- REPORT -->
+  <section class="view" id="v-out">
+    <div class="card">
+      <h2>Your evidence</h2>
+      <div class="stat">
+        <div><b id="sRooms">0</b><span>rooms</span></div>
+        <div><b id="sIn">0</b><span>move-in photos</span></div>
+        <div><b id="sOut">0</b><span>move-out photos</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Make your documents</h2>
+      <div class="actions">
+        <button class="btn" id="mkIn">Move-in condition report</button>
+        <button class="btn" id="mkCmp">Move-in vs move-out comparison <span class="pro-tag">PRO</span></button>
+        <button class="btn" id="mkLetter">Deposit request letter <span class="pro-tag">PRO</span></button>
+      </div>
+      <div class="hint">Tip: send the move-in report to your landlord by email in your first week. It puts the unit's condition on the record with a date.</div>
+    </div>
+    <div id="docWrap">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn primary" id="printDoc">Save as PDF / Print</button>
+        <button class="btn" id="closeDoc">Close</button>
+      </div>
+      <div id="docArea"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Back up your evidence</h2>
+      <p class="hint" style="margin-top:0">Your photos live only on this phone, in this browser. Save a backup file to your Files app or email it to yourself so nothing gets lost before move-out.</p>
+      <div class="actions">
+        <button class="btn" id="backup">Save backup file</button>
+        <button class="btn" id="restoreBtn">Restore from backup</button>
+        <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+        <button class="btn small" id="reset" style="justify-self:start;margin-top:6px">Start over (erase everything)</button>
+      </div>
+      <div class="msg" id="bmsg"></div>
+    </div>
+  </section>
+</div>
+
+<footer class="site">Deposit Back keeps everything on your device. Nothing is uploaded. Not legal advice.<br>
+<a href="../">Doorcount</a> · <a href="../resume/">Resume Once</a></footer>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="box">
+    <h2 id="mTitle">Deposit Back Pro</h2>
+    <div class="price">$12 <span style="font-size:14px;font-weight:400;color:var(--muted)">one time</span></div>
+    <ul>
+      <li>Side-by-side move-in vs move-out comparison report, with changes highlighted</li>
+      <li>Ready-to-send deposit request letter</li>
+      <li>Unlimited photos (free is <span class="freeMax"></span>)</li>
+      <li>No "made free with" line on your PDFs</li>
+      <li>No subscription, ever. Less than 1% of a typical deposit.</li>
+    </ul>
+    <a class="btn primary block" id="buyLink" href="#" target="_blank" rel="noopener" hidden>Buy Pro for $12</a>
+    <div class="hint" id="buyNote">Everything is free while we launch. Enjoy!</div>
+    <div id="paidBox" hidden style="margin-top:14px;padding:12px;border-radius:10px;background:var(--soft)">
+      <b>Finished paying?</b> Tap below to switch on Pro on this device.
+      <button class="btn primary block" id="paidBtn" style="margin-top:8px">I've paid, unlock Pro</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <button class="btn block" id="closeModal" style="margin-top:10px">Close</button>
+  </div>
+</div>
+
+<div id="printRoot"></div>
+
+<script>
+const PAYMENT_LINK = "";  // e.g. "https://buy.stripe.com/xxxxxxxx". While empty, Pro is free for everyone.
+const FREE_PHOTOS = 15;
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const isPro = () => !PAYMENT_LINK || pro;
+
+const ITEMS = {
+  "Entry": ["Front door & lock", "Walls", "Floor", "Light fixtures"],
+  "Living room": ["Walls", "Floor / carpet", "Ceiling", "Windows & blinds", "Outlets & switches"],
+  "Kitchen": ["Counters", "Cabinets", "Sink & faucet", "Stove / oven", "Fridge", "Dishwasher", "Floor", "Walls"],
+  "Bathroom": ["Toilet", "Tub / shower", "Sink & vanity", "Mirror", "Tiles & grout", "Floor", "Fan"],
+  "Bedroom": ["Walls", "Floor / carpet", "Closet", "Windows & blinds", "Door"],
+  "Other": ["Walls", "Floor", "Fixtures"]
+};
+const DEFAULT_ROOMS = ["Entry", "Living room", "Kitchen", "Bathroom", "Bedroom"];
+const COND = [["good","Good"],["wear","Worn"],["bad","Damaged"]];
+const RANK = { "":0, good:1, wear:2, bad:3 };
+const FIELDS = ["address","moveIn","moveOut","deposit","deadline","tenant","landlord","landlordAddr","forward"];
+
+function newRoom(name){
+  const key = Object.keys(ITEMS).find(k => name.toLowerCase().startsWith(k.toLowerCase())) || "Other";
+  return { id: uid(), name, items: ITEMS[key].map(n => ({ n, in:{c:"",t:""}, out:{c:"",t:""} })) };
+}
+let state = store.get("db.state", null) || { info:{}, phase:"in", rooms: DEFAULT_ROOMS.map(newRoom) };
+let pro = store.get("db.pro", false);
+const save = () => store.set("db.state", state);
+
+/* ---------- photos in IndexedDB ---------- */
+let dbp;
+function db(){
+  if (!dbp) dbp = new Promise((res, rej) => {
+    const r = indexedDB.open("depositback", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("photos", { keyPath: "id" });
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+async function tx(mode, fn){
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction("photos", mode); const s = t.objectStore("photos");
+    const out = fn(s); t.oncomplete = () => res(out && out.result !== undefined ? out.result : out); t.onerror = () => rej(t.error);
+  });
+}
+const putPhoto = p => tx("readwrite", s => s.put(p));
+const delPhoto = id => tx("readwrite", s => s.delete(id));
+const allPhotos = () => tx("readonly", s => s.getAll());
+const clearPhotos = () => tx("readwrite", s => s.clear());
+let photos = [];  // [{id, room, phase, ts, blob}]
+const urls = new Map();
+const urlOf = p => { if (!urls.has(p.id)) urls.set(p.id, URL.createObjectURL(p.blob)); return urls.get(p.id); };
+
+const fmtTime = ts => new Date(ts).toLocaleString([], { year:"numeric", month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
+const fmtDate = s => s ? new Date(s + "T12:00:00").toLocaleDateString([], { year:"numeric", month:"long", day:"numeric" }) : "";
+
+// Shrink to 1400px and burn the date and time into the corner of the photo.
+function stampPhoto(file){
+  return new Promise((res, rej) => {
+    const img = new Image(); const u = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 1400, k = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.round(img.width * k), h = Math.round(img.height * k);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const g = c.getContext("2d"); g.drawImage(img, 0, 0, w, h);
+      const ts = Date.now(); const label = fmtTime(ts);
+      const fs = Math.max(16, Math.round(w / 34)); g.font = `600 ${fs}px -apple-system, Helvetica, Arial, sans-serif`;
+      const tw = g.measureText(label).width, pad = fs * .45;
+      g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(w - tw - pad * 3, h - fs - pad * 3, tw + pad * 2, fs + pad * 2);
+      g.fillStyle = "#ffd54a"; g.textBaseline = "top"; g.fillText(label, w - tw - pad * 2, h - fs - pad * 2);
+      URL.revokeObjectURL(u);
+      c.toBlob(b => b ? res({ blob: b, ts }) : rej(new Error("encode")), "image/jpeg", .82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error("That file doesn't look like a photo.")); };
+    img.src = u;
+  });
+}
+
+/* ---------- tabs ---------- */
+function show(view){
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.view === view));
+  document.querySelectorAll("section.view").forEach(s => s.classList.toggle("on", s.id === view));
+  if (view === "v-out") stats();
+  window.scrollTo({ top: 0 });
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+$("toWalk").addEventListener("click", () => show("v-walk"));
+
+/* ---------- details ---------- */
+FIELDS.forEach(f => {
+  $(f).value = state.info[f] || "";
+  $(f).addEventListener("input", () => { state.info[f] = $(f).value; save(); });
+});
+
+/* ---------- walkthrough ---------- */
+document.querySelectorAll(".phase button").forEach(b => b.addEventListener("click", () => {
+  state.phase = b.dataset.phase; save(); renderRooms();
+}));
+const openRooms = new Set(store.get("db.open", null) || [state.rooms[0] && state.rooms[0].id]);
+
+function renderRooms(){
+  const ph = state.phase;
+  document.querySelectorAll(".phase button").forEach(b => b.classList.toggle("on", b.dataset.phase === ph));
+  $("rooms").innerHTML = state.rooms.map(r => {
+    const pics = photos.filter(p => p.room === r.id && p.phase === ph);
+    const done = r.items.filter(it => it[ph].c).length;
+    return `<details class="card room" data-room="${r.id}" ${openRooms.has(r.id) ? "open" : ""}>
+      <summary><h2><span>${esc(r.name)} <span class="count">${done}/${r.items.length} checked · ${pics.length} photo${pics.length === 1 ? "" : "s"}</span></span></h2></summary>
+      ${r.items.map((it, i) => `<div class="item">
+        <div class="item-top"><span class="item-name">${esc(it.n)}</span>
+          <span class="chips">${COND.map(([k, l]) => `<button class="chip c-${k} ${it[ph].c === k ? "on" : ""}" data-i="${i}" data-c="${k}">${l}</button>`).join("")}</span></div>
+        ${ph === "out" && it.in.c ? `<div class="was">Move-in: ${COND.find(c => c[0] === it.in.c)[1]}${it.in.t ? " · " + esc(it.in.t) : ""}</div>` : ""}
+        <input class="note" data-i="${i}" placeholder="Note (e.g. small scratch left of window)" value="${esc(it[ph].t)}">
+      </div>`).join("")}
+      <div class="photos">
+        ${pics.map(p => `<div class="ph"><img src="${urlOf(p)}" alt="" loading="lazy"><button class="x" data-del="${p.id}" aria-label="Delete photo">×</button><span class="tag">${new Date(p.ts).toLocaleDateString([], {month:"short", day:"numeric"})}</span></div>`).join("")}
+        <label class="addph"><b>+</b>Add photos<input type="file" accept="image/*" multiple hidden data-add="${r.id}"></label>
+      </div>
+      <div class="room-tools">
+        <button class="btn small" data-additem="${r.id}">+ Item</button>
+        <button class="btn small" data-rename="${r.id}">Rename</button>
+        <button class="btn small" data-delroom="${r.id}">Remove room</button>
+      </div>
+    </details>`;
+  }).join("");
+  const n = photos.length;
+  $("photoNote").textContent = isPro() ? `${n} photo${n === 1 ? "" : "s"} saved on this device.` : `${n} of ${FREE_PHOTOS} free photos used. Pro is unlimited.`;
+}
+
+$("rooms").addEventListener("toggle", e => {
+  const id = e.target.dataset && e.target.dataset.room; if (!id) return;
+  e.target.open ? openRooms.add(id) : openRooms.delete(id); store.set("db.open", [...openRooms]);
+}, true);
+
+$("rooms").addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const roomEl = t.closest("[data-room]"); const room = roomEl && state.rooms.find(r => r.id === roomEl.dataset.room);
+  if (t.dataset.c && room) {
+    const it = room.items[+t.dataset.i]; const ph = state.phase;
+    it[ph].c = it[ph].c === t.dataset.c ? "" : t.dataset.c; save(); renderRooms();
+  } else if (t.dataset.del) {
+    e.preventDefault();
+    if (!confirm("Delete this photo?")) return;
+    await delPhoto(t.dataset.del); photos = photos.filter(p => p.id !== t.dataset.del); renderRooms();
+  } else if (t.dataset.additem) {
+    const n = prompt("What item? (e.g. Ceiling fan)"); if (!n) return;
+    room.items.push({ n: n.trim(), in:{c:"",t:""}, out:{c:"",t:""} }); save(); renderRooms();
+  } else if (t.dataset.rename) {
+    const n = prompt("Room name", room.name); if (!n) return; room.name = n.trim(); save(); renderRooms();
+  } else if (t.dataset.delroom) {
+    if (!confirm(`Remove ${room.name} and its photos?`)) return;
+    for (const p of photos.filter(p => p.room === room.id)) await delPhoto(p.id);
+    photos = photos.filter(p => p.room !== room.id);
+    state.rooms = state.rooms.filter(r => r !== room); save(); renderRooms();
+  }
+});
+$("rooms").addEventListener("input", e => {
+  if (!e.target.classList.contains("note")) return;
+  const room = state.rooms.find(r => r.id === e.target.closest("[data-room]").dataset.room);
+  room.items[+e.target.dataset.i][state.phase].t = e.target.value; save();
+});
+$("rooms").addEventListener("change", async e => {
+  const roomId = e.target.dataset.add; if (!roomId) return;
+  const files = [...e.target.files]; e.target.value = "";
+  for (const f of files) {
+    if (!isPro() && photos.length >= FREE_PHOTOS) { openModal(`You've used all ${FREE_PHOTOS} free photos. Pro gives you unlimited photos.`); break; }
+    try {
+      const { blob, ts } = await stampPhoto(f);
+      const p = { id: uid(), room: roomId, phase: state.phase, ts, blob };
+      await putPhoto(p); photos.push(p);
+    } catch (err) { alert(err.message || "Couldn't save that photo."); }
+  }
+  renderRooms();
+});
+$("addRoom").addEventListener("click", () => {
+  const n = $("newRoom").value.trim(); if (!n) return;
+  const r = newRoom(n); state.rooms.push(r); openRooms.add(r.id); $("newRoom").value = ""; save(); renderRooms();
+});
+
+/* ---------- report ---------- */
+function stats(){
+  $("sRooms").textContent = state.rooms.length;
+  $("sIn").textContent = photos.filter(p => p.phase === "in").length;
+  $("sOut").textContent = photos.filter(p => p.phase === "out").length;
+}
+const condTxt = c => c ? `<span class="${c[0] === "g" ? "g" : c === "wear" ? "w" : "d"}">${COND.find(x => x[0] === c)[1]}</span>` : "—";
+const wm = () => isPro() ? "" : `<div class="wm">Made free with Deposit Back · dxpugsalotxd-hub.github.io/doorcount/deposit</div>`;
+function head(title){
+  const i = state.info;
+  return `<h1>${title}</h1>
+    <div class="meta">${esc(i.address || "Rental address not entered")}<br>
+    Tenant: ${esc(i.tenant || "—")} · Landlord: ${esc(i.landlord || "—")}<br>
+    Move-in: ${esc(fmtDate(i.moveIn) || "—")} · Move-out: ${esc(fmtDate(i.moveOut) || "—")}<br>
+    Report created ${esc(fmtTime(Date.now()))}. Photo dates are stamped into each image when taken.</div>`;
+}
+function figs(list){
+  if (!list.length) return `<div class="meta">No photos.</div>`;
+  return `<div class="grid">${list.map(p => `<figure><img src="${urlOf(p)}" alt=""><figcaption>${esc(fmtTime(p.ts))}</figcaption></figure>`).join("")}</div>`;
+}
+function reportIn(){
+  return `<div class="doc">${head("Move-in condition report")}
+    ${state.rooms.map(r => `<div class="room-block"><h3>${esc(r.name)}</h3>
+      <table><tr><th>Item</th><th>Condition</th><th>Notes</th></tr>
+      ${r.items.map(it => `<tr><td>${esc(it.n)}</td><td>${condTxt(it.in.c)}</td><td>${esc(it.in.t)}</td></tr>`).join("")}</table>
+      ${figs(photos.filter(p => p.room === r.id && p.phase === "in"))}</div>`).join("")}
+    <p class="meta" style="margin-top:20px">Tenant signature: ____________________ Date: __________<br><br>Landlord signature: __________________ Date: __________</p>
+    ${wm()}</div>`;
+}
+function worse(it){ return it.out.c && RANK[it.out.c] > RANK[it.in.c || "good"]; }
+function reportCmp(){
+  const changed = state.rooms.flatMap(r => r.items.filter(worse).map(it => `${r.name}: ${it.n}`));
+  return `<div class="doc">${head("Move-in vs move-out condition report")}
+    <p class="meta" style="margin-top:10px"><b>Summary:</b> ${state.rooms.reduce((a, r) => a + r.items.length, 0)} items in ${state.rooms.length} rooms checked at both move-in and move-out, with ${photos.length} date-stamped photos.
+    ${changed.length ? `Items marked worse at move-out (highlighted): ${esc(changed.join("; "))}.` : "No item was marked worse at move-out than at move-in."}</p>
+    ${state.rooms.map(r => `<div class="room-block"><h3>${esc(r.name)}</h3>
+      <table><tr><th>Item</th><th>Move-in</th><th>Move-out</th><th>Notes</th></tr>
+      ${r.items.map(it => `<tr class="${worse(it) ? "worse" : ""}"><td>${esc(it.n)}</td><td>${condTxt(it.in.c)}</td><td>${condTxt(it.out.c)}</td>
+        <td>${[it.in.t && "In: " + esc(it.in.t), it.out.t && "Out: " + esc(it.out.t)].filter(Boolean).join("<br>")}</td></tr>`).join("")}</table>
+      <div class="meta" style="margin-top:8px"><b>Move-in photos</b></div>${figs(photos.filter(p => p.room === r.id && p.phase === "in"))}
+      <div class="meta" style="margin-top:8px"><b>Move-out photos</b></div>${figs(photos.filter(p => p.room === r.id && p.phase === "out"))}</div>`).join("")}
+    ${wm()}</div>`;
+}
+function letterText(){
+  const i = state.info, amt = i.deposit ? "$" + Number(String(i.deposit).replace(/[^0-9.]/g, "")).toLocaleString() : "my security deposit";
+  const changed = state.rooms.some(r => r.items.some(worse));
+  const days = parseInt(i.deadline, 10) || 30;
+  return [
+    new Date().toLocaleDateString([], { year:"numeric", month:"long", day:"numeric" }),
+    [i.landlord || "[Landlord name]", i.landlordAddr || "[Landlord address]"].join("\n"),
+    `Re: Return of security deposit for ${i.address || "[rental address]"}`,
+    `Dear ${i.landlord || "Landlord"},`,
+    `I moved out of ${i.address || "the unit"} on ${fmtDate(i.moveOut) || "[move-out date]"} and returned the keys. I am writing to request the return of my security deposit of ${amt}.`,
+    `I documented the condition of the unit room by room at move-in${i.moveIn ? " on " + fmtDate(i.moveIn) : ""} and again at move-out, with ${photos.length} date-stamped photos. The enclosed condition report shows the unit was returned in the condition I received it${changed ? ", apart from normal wear and tear and the specific items noted in the report" : ", apart from normal wear and tear"}.`,
+    `Please return the deposit within ${days} days of my move-out, as required by law. If you intend to make any deduction, please send me a written, itemized list of each deduction with receipts or repair estimates by the same deadline.`,
+    `Please send payment to my forwarding address:\n${i.forward || "[forwarding address]"}`,
+    `I would prefer to settle this simply and quickly. Thank you for your attention.`,
+    `Sincerely,\n${i.tenant || "[Your name]"}`
+  ].join("\n\n");
+}
+function showDoc(html){
+  $("docArea").innerHTML = html; $("docWrap").classList.add("on");
+  $("docWrap").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("mkIn").addEventListener("click", () => showDoc(reportIn()));
+$("mkCmp").addEventListener("click", () => isPro() ? showDoc(reportCmp()) : openModal("The comparison report is part of Pro."));
+$("mkLetter").addEventListener("click", () => {
+  if (!isPro()) return openModal("The deposit request letter is part of Pro.");
+  showDoc(`<p class="hint" style="margin:0 0 8px">Edit anything below, then save it as a PDF and send it with your comparison report.</p>
+    <textarea id="letterEdit" style="min-height:420px;font-size:14px;line-height:1.5">${esc(letterText())}</textarea>`);
+});
+$("printDoc").addEventListener("click", () => {
+  const ed = $("letterEdit");
+  $("printRoot").innerHTML = ed ? `<div class="doc"><div class="letter">${ed.value.split(/\n{2,}/).map(p => `<p>${esc(p)}</p>`).join("")}</div>${wm()}</div>` : $("docArea").innerHTML;
+  const imgs = [...$("printRoot").querySelectorAll("img")];
+  Promise.all(imgs.map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; }))).then(() => window.print());
+});
+$("closeDoc").addEventListener("click", () => { $("docWrap").classList.remove("on"); $("docArea").innerHTML = ""; });
+
+/* ---------- backup ---------- */
+const toB64 = blob => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+$("backup").addEventListener("click", async () => {
+  const data = { app: "depositback", v: 1, state, photos: await Promise.all(photos.map(async p => ({ ...p, blob: await toB64(p.blob) }))) };
+  const file = new File([JSON.stringify(data)], `deposit-back-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: "application/json" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "Deposit Back backup" }); $("bmsg").textContent = "Backup shared."; $("bmsg").className = "msg ok"; return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+  $("bmsg").textContent = "Backup saved to your downloads."; $("bmsg").className = "msg ok";
+});
+$("restoreBtn").addEventListener("click", () => $("restoreFile").click());
+$("restoreFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.app !== "depositback") throw new Error();
+    if (!confirm("Replace what's on this device with the backup?")) return;
+    await clearPhotos(); urls.clear();
+    photos = await Promise.all(data.photos.map(async p => ({ ...p, blob: await (await fetch(p.blob)).blob() })));
+    for (const p of photos) await putPhoto(p);
+    state = data.state; save(); FIELDS.forEach(k => $(k).value = state.info[k] || ""); renderRooms(); stats();
+    $("bmsg").textContent = "Backup restored."; $("bmsg").className = "msg ok";
+  } catch { $("bmsg").textContent = "That file isn't a Deposit Back backup."; $("bmsg").className = "msg err"; }
+});
+$("reset").addEventListener("click", async () => {
+  if (!confirm("Erase all details and photos on this device? Save a backup first if you need it.")) return;
+  await clearPhotos(); photos = []; urls.clear();
+  state = { info:{}, phase:"in", rooms: DEFAULT_ROOMS.map(newRoom) }; save();
+  FIELDS.forEach(k => $(k).value = ""); renderRooms(); stats(); show("v-home");
+});
+
+/* ---------- Pro ---------- */
+document.querySelectorAll(".freeMax").forEach(el => el.textContent = FREE_PHOTOS + " photos");
+function openModal(reason){
+  $("msg").textContent = reason || ""; $("msg").className = "msg";
+  $("modal").classList.add("open");
+}
+$("proBtn").addEventListener("click", () => openModal(pro ? "Pro is unlocked on this device. Thank you!" : ""));
+$("closeModal").addEventListener("click", () => $("modal").classList.remove("open"));
+$("modal").addEventListener("click", e => { if (e.target.id === "modal") $("modal").classList.remove("open"); });
+if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. When you're done, come back to this tab to unlock Pro."; }
+// After checkout the buyer returns here and unlocks Pro (honor-based, like Resume Once).
+$("buyLink").addEventListener("click", () => { store.set("db.buyAt", Date.now()); setTimeout(checkPaid, 16000); });
+function checkPaid(){
+  const t = store.get("db.buyAt", 0);
+  const ready = PAYMENT_LINK && !pro && t && Date.now() - t > 15000;
+  $("paidBox").hidden = !ready;
+  if (ready && !$("modal").classList.contains("open")) openModal("");
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPaid(); });
+window.addEventListener("focus", checkPaid);
+$("paidBtn").addEventListener("click", () => {
+  pro = true; store.set("db.pro", true); updatePro(); $("paidBox").hidden = true;
+  $("msg").textContent = "Pro is unlocked. Thank you for your purchase!"; $("msg").className = "msg ok"; renderRooms();
+});
+function updatePro(){ $("proBtn").textContent = isPro() ? "Pro ✓" : "Get Pro"; }
+
+allPhotos().then(list => { photos = list.sort((a, b) => a.ts - b.ts); renderRooms(); stats(); }).catch(() => renderRooms());
+renderRooms(); updatePro(); checkPaid();
+</script>
+</body>
+</html>
