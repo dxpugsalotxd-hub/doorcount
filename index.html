@@ -269,8 +269,13 @@ footer { margin-top: 32px; font-size: 12px; color: var(--muted); max-width: 70ch
     <button type="button" class="ghost" id="closeUpgrade">Not now</button>
   </div>
   <p class="note" id="buyNote"></p>
+  <div id="paidBox" hidden style="margin-top:14px">
+    <p class="note"><b>Finished paying?</b> Tap below to switch on Pro on this device.</p>
+    <button type="button" id="paidBtn" style="width:100%">I've paid, unlock Pro</button>
+    <p class="msg" id="paidMsg"></p>
+  </div>
   <form id="codeForm" style="margin-top:14px">
-    <label>Already paid? Enter the unlock code from your receipt
+    <label>Have an unlock code? Enter it here
       <div class="row"><div class="field" style="flex:1"><input type="text" id="code" placeholder="XXXX-XXXX-XXXX"></div><button type="submit">Unlock</button></div>
     </label>
     <p class="msg" id="codeMsg"></p>
@@ -409,14 +414,30 @@ async function sha256(s) {
 }
 function openUpgrade() {
   const dlg = $("upgrade");
-  if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. Your unlock code appears on the receipt page."; }
+  if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. When you're done, come back to this tab to unlock Pro."; }
   else { $("buyLink").hidden = true; $("buyNote").textContent = "Checkout is not open yet. This is a preview build."; }
-  $("codeMsg").textContent = "";
+  $("codeMsg").textContent = ""; $("paidMsg").textContent = "";
+  if (dlg.open) return;
   if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
 }
 $("openUpgrade").addEventListener("click", openUpgrade);
 document.querySelectorAll(".unlock-btn").forEach(b => b.addEventListener("click", openUpgrade));
 $("closeUpgrade").addEventListener("click", () => $("upgrade").close());
+// After checkout the buyer returns here and unlocks Pro (no code needed from Stripe).
+$("buyLink").addEventListener("click", () => { store.set("doorcount.buyAt", Date.now()); setTimeout(checkPaid, 16000); });
+function checkPaid() {
+  const t = store.get("doorcount.buyAt", 0);
+  const ready = !isPro() && t && Date.now() - t > 15000;
+  $("paidBox").hidden = !ready;
+  if (ready && !$("upgrade").open) openUpgrade();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPaid(); });
+window.addEventListener("focus", checkPaid);
+$("paidBtn").addEventListener("click", () => {
+  store.set("doorcount.pro", true); applyPlan(); $("paidBox").hidden = true;
+  $("buyNote").textContent = "Pro is unlocked. Thank you for your purchase!";
+  setTimeout(() => $("upgrade").close(), 1200);
+});
 $("codeForm").addEventListener("submit", async e => {
   e.preventDefault();
   const msg = $("codeMsg");
@@ -461,7 +482,7 @@ $("deal").addEventListener("input", render);
 $("projSection").addEventListener("input", render);
 const draft = store.get("doorcount.draft2", null);
 if (draft) fill(draft); else render();
-applyPlan(); renderSaved();
+applyPlan(); renderSaved(); checkPaid();
 </script>
 </body>
 </html>
