@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Packed: QR labels for moving boxes</title>
+<meta name="description" content="Print QR labels for your moving boxes. Scan any box with a phone camera to see what's inside, and search every box for that one thing you need. No app or account.">
+<style>
+:root{
+  --bg:#f6f4ef; --panel:#ffffff; --ink:#1d1c1a; --muted:#64625c; --line:#e3dfd6;
+  --accent:#c2581b; --accent-ink:#ffffff; --soft:#f8ebe2; --ok:#1f7a4d; --bad:#b3261e;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141312; --panel:#1e1c1a; --ink:#eeece8; --muted:#a8a49c; --line:#36332f; --accent:#ec8a4f; --accent-ink:#2a1206; --soft:#33241b; --ok:#4cc38a; --bad:#f2786f; }
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+header.top{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{font-weight:700;letter-spacing:-.01em}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;color:inherit}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn.block{display:block;width:100%;text-align:center}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.hero{padding:18px 0 4px}
+.hero h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+.hero p{margin:0;color:var(--muted)}
+.tabs{display:flex;gap:8px;padding:14px 0 4px;position:sticky;top:61px;background:var(--bg);z-index:4}
+.tabs button{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 4px;cursor:pointer;font-size:14px}
+.tabs button.on{background:var(--soft);border-color:var(--accent);font-weight:600}
+section.view{display:none;padding:10px 0 40px}
+section.view.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,textarea,select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:9px 10px;min-width:0}
+textarea{min-height:110px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.checks{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.checks label{display:flex;align-items:center;gap:6px;margin:0;font-size:14px;color:var(--ink)}
+.checks input{width:auto}
+.box{display:flex;gap:12px;align-items:flex-start;border-top:1px solid var(--line);padding:12px 0}
+.box:first-child{border-top:0}
+.num{flex:none;width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#fff}
+.box .body{flex:1;min-width:0}
+.box .room{font-weight:700}
+.box .items{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:middle}
+.b-fragile{background:#fde7e5;color:#b3261e}
+.b-first{background:#e3f3ea;color:#1f7a4d}
+.box .tools{display:flex;gap:6px;margin-top:6px}
+.empty{color:var(--muted);text-align:center;padding:20px 0}
+mark{background:#ffe08a;color:#1d1c1a;border-radius:3px;padding:0 2px}
+.pro-tag{font-size:11px;background:var(--soft);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:600;vertical-align:middle}
+.actions{display:grid;gap:8px}
+.msg{font-size:13px;margin-top:8px}
+.msg.ok{color:var(--ok)} .msg.err{color:var(--bad)}
+footer.site{color:var(--muted);font-size:12px;text-align:center;padding:10px 16px 30px}
+footer.site a{color:inherit}
+
+/* scanned box view */
+#scan{display:none;max-width:520px;margin:0 auto;padding:18px 16px 40px}
+body.scanning #scan{display:block}
+body.scanning #app{display:none}
+.scan-head{border-radius:16px;color:#fff;padding:20px;text-align:center}
+.scan-head .n{font-size:64px;font-weight:800;line-height:1}
+.scan-head .r{font-size:24px;font-weight:700;margin-top:4px}
+.scan-head .m{opacity:.85;font-size:13px;margin-top:4px}
+.scan-list{font-size:18px;line-height:1.6;padding-left:22px;margin:12px 0}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.open{display:flex}
+.modal .box2{background:var(--panel);border-radius:16px;padding:18px;max-width:400px;width:100%;max-height:90vh;overflow:auto}
+.modal h2{margin:0 0 4px;font-size:18px}
+.modal .price{font-size:28px;font-weight:700;margin:6px 0}
+.modal ul{padding-left:18px;margin:8px 0 14px}
+
+/* printable labels + inventory */
+#preview{display:none;margin-top:14px}
+#preview.on{display:block}
+.sheet{background:#fff;color:#111;border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.12);padding:16px;overflow:hidden}
+.labels{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.label{border:2px dashed #999;border-radius:10px;overflow:hidden;break-inside:avoid;display:flex;flex-direction:column}
+.label .band{color:#fff;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.label .band .bn{font-size:34px;font-weight:800;line-height:1}
+.label .band .br{font-size:18px;font-weight:800;text-transform:uppercase;text-align:right;line-height:1.1;overflow-wrap:anywhere}
+.label .lbody{display:flex;gap:8px;padding:8px 10px;align-items:flex-start}
+.label .qr{flex:none;width:44%}
+.label .qr svg{width:100%;height:auto;display:block}
+.label .li{font-size:11px;line-height:1.35;color:#333;min-width:0;overflow-wrap:anywhere}
+.label .li b{display:block;font-size:12px;color:#111}
+.label .flags{padding:0 10px 8px;display:flex;gap:6px;flex-wrap:wrap}
+.label .flag{font-size:13px;font-weight:800;border:2px solid currentColor;border-radius:6px;padding:1px 6px}
+.label .flag.f{color:#b3261e} .label .flag.o{color:#1f7a4d}
+.label .foot{font-size:9px;color:#888;padding:0 10px 6px}
+.inv h1{font-size:20px;margin:0 0 4px}
+.inv .meta{color:#555;font-size:12px}
+.inv table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+.inv th,.inv td{border:1px solid #ccc;padding:5px 6px;text-align:left;vertical-align:top}
+.inv th{background:#f1f1f1}
+.wm{margin-top:12px;text-align:center;font-size:10px;color:#888}
+#printRoot{display:none}
+@media print{
+  @page{margin:.4in}
+  body{background:#fff}
+  body > *:not(#printRoot){display:none !important}
+  #printRoot{display:block !important}
+  #printRoot .sheet{box-shadow:none;padding:0;border-radius:0}
+  .label{height:3.15in}
+  .label:nth-child(6n){break-after:page}
+}
+@media (max-width:520px){
+  .row{grid-template-columns:1fr}
+  .sheet .labels{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- What someone sees after scanning a box label -->
+<div id="scan">
+  <div class="scan-head" id="sHead"><div class="n" id="sNum"></div><div class="r" id="sRoom"></div><div class="m" id="sMove"></div></div>
+  <div id="sFlags" style="margin-top:10px;text-align:center"></div>
+  <div class="card" style="margin-top:12px">
+    <h2>Inside this box</h2>
+    <ul class="scan-list" id="sItems"></ul>
+    <div class="hint" id="sMore"></div>
+    <a class="btn small" id="sEdit" hidden href="#">Edit this box</a>
+  </div>
+  <div class="card" style="text-align:center">
+    <b>Moving soon?</b>
+    <p class="hint" style="margin:4px 0 10px">Label your own boxes with Packed. Scan any box to see what's in it. Free to start, no app or account.</p>
+    <a class="btn primary" href="./">Make my box labels</a>
+  </div>
+</div>
+
+<div id="app">
+<header class="top">
+  <div class="brand">Packed<small>Scan a box. See what's inside.</small></div>
+  <button class="btn primary small" id="proBtn">Get Pro</button>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Never open 30 boxes to find the kettle again.</h1>
+    <p>List what goes in each box, print a big color-coded label with a QR code, and tape it on. Anyone helping you move can scan a box with their phone camera to see what's inside and which room it goes to. Search every box from your phone.</p>
+  </div>
+
+  <nav class="tabs">
+    <button class="on" data-view="v-boxes">Boxes</button>
+    <button data-view="v-find">Find</button>
+    <button data-view="v-print">Print</button>
+  </nav>
+
+  <!-- BOXES -->
+  <section class="view on" id="v-boxes">
+    <div class="card">
+      <h2 id="formTitle">Box 1</h2>
+      <label for="move">Move name (shows on every label)</label>
+      <input id="move" placeholder="e.g. Rahman family to Dallas">
+      <div class="row">
+        <div><label for="room">Goes to room</label>
+          <select id="room"></select></div>
+        <div id="otherWrap" hidden><label for="otherRoom">Room name</label><input id="otherRoom" placeholder="e.g. Office"></div>
+      </div>
+      <label for="items">What's inside (one thing per line)</label>
+      <textarea id="items" placeholder="Kettle&#10;Coffee mugs (6)&#10;Phone chargers&#10;Spices"></textarea>
+      <div class="checks">
+        <label><input type="checkbox" id="fragile"> Fragile</label>
+        <label><input type="checkbox" id="first"> Open first</label>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn primary" id="saveBox" style="flex:1">Save box</button>
+        <button class="btn" id="cancelEdit" hidden>Cancel</button>
+      </div>
+      <div class="msg" id="fmsg"></div>
+    </div>
+    <div class="card">
+      <h2>Your boxes <span class="hint" id="boxCount" style="margin:0"></span></h2>
+      <div id="boxList"></div>
+    </div>
+  </section>
+
+  <!-- FIND -->
+  <section class="view" id="v-find">
+    <div class="card">
+      <h2>Where did I pack it?</h2>
+      <input id="q" type="search" placeholder="Type anything: passport, drill, kids' pajamas">
+      <div id="results" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- PRINT -->
+  <section class="view" id="v-print">
+    <div class="card">
+      <h2>Print</h2>
+      <div class="actions">
+        <button class="btn primary" id="mkLabels">Box labels (6 per page)</button>
+        <button class="btn" id="mkInv">Full inventory list <span class="pro-tag">PRO</span></button>
+      </div>
+      <div class="hint">No printer? Open the labels, save as PDF, and print at a library or copy shop. Or write the box number on each box with a marker and keep the list here.</div>
+    </div>
+    <div id="preview">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn primary" id="printDoc">Save as PDF / Print</button>
+        <button class="btn" id="closeDoc">Close</button>
+      </div>
+      <div id="docArea"></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>Back up your list</h2>
+      <p class="hint" style="margin-top:0">Your boxes are saved in this browser. Save a backup file to your Files app, or restore one on another phone.</p>
+      <div class="actions">
+        <button class="btn" id="backup">Save backup file</button>
+        <button class="btn" id="restoreBtn">Restore from backup</button>
+        <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+        <button class="btn small" id="reset" style="justify-self:start;margin-top:6px">Start over (erase everything)</button>
+      </div>
+      <div class="msg" id="bmsg"></div>
+    </div>
+  </section>
+</div>
+
+<footer class="site">Packed keeps your list on your device. Nothing is uploaded.<br>
+<a href="../deposit/">Deposit Back</a> · <a href="../resume/">Resume Once</a> · <a href="../">Doorcount</a></footer>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="box2">
+    <h2 id="mTitle">Packed Pro</h2>
+    <div class="price">$9 <span style="font-size:14px;font-weight:400;color:var(--muted)">one time</span></div>
+    <ul>
+      <li>Unlimited boxes (free is <span class="freeMax"></span>)</li>
+      <li>Full inventory list to print or send to your mover and insurer</li>
+      <li>No "made free with" line on your labels</li>
+      <li>No subscription, ever</li>
+    </ul>
+    <a class="btn primary block" id="buyLink" href="#" target="_blank" rel="noopener" hidden>Buy Pro for $9</a>
+    <div class="hint" id="buyNote">Everything is free while we launch. Enjoy!</div>
+    <div id="paidBox" hidden style="margin-top:14px;padding:12px;border-radius:10px;background:var(--soft)">
+      <b>Finished paying?</b> Tap below to switch on Pro on this device.
+      <button class="btn primary block" id="paidBtn" style="margin-top:8px">I've paid, unlock Pro</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <button class="btn block" id="closeModal" style="margin-top:10px">Close</button>
+  </div>
+</div>
+
+<div id="printRoot"></div>
+
+<script src="qrcode.js"></script>
+<script>
+const PAYMENT_LINK = "";  // e.g. "https://buy.stripe.com/xxxxxxxx". While empty, Pro is free for everyone.
+const FREE_BOXES = 10;
+const QR_MAX = 420;  // longest label URL we put in a QR code, so it stays easy to scan
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+const ROOMS = [["Kitchen","#d1495b"],["Living room","#2e86ab"],["Bedroom","#7b4fa0"],["Kids' room","#e08e0b"],["Bathroom","#1b998b"],["Office","#3d5a80"],["Garage","#6b705c"],["Dining room","#a0522d"]];
+const OTHER_COLORS = ["#0f766e","#9d174d","#4d7c0f","#1e40af","#92400e","#475569"];
+function colorOf(room){
+  const r = ROOMS.find(x => x[0].toLowerCase() === String(room).toLowerCase()); if (r) return r[1];
+  let h = 0; for (const c of String(room)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return OTHER_COLORS[h % OTHER_COLORS.length];
+}
+
+let state = store.get("pk.state", null) || { id: uid(), move: "", boxes: [] };
+let pro = store.get("pk.pro", false);
+const isPro = () => !PAYMENT_LINK || pro;
+const save = () => store.set("pk.state", state);
+const nextNum = () => state.boxes.reduce((m, b) => Math.max(m, b.n), 0) + 1;
+const itemsOf = text => String(text).split("\n").map(s => s.trim()).filter(Boolean);
+
+/* ---------- label URL: the whole box travels inside the QR code ---------- */
+const b64u = s => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64u = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0)));
+const baseUrl = () => location.href.split("#")[0].split("?")[0];
+function boxUrl(b){
+  const items = b.items.slice(); let more = 0, url;
+  for (;;) {
+    const data = { v: 1, s: state.id, n: b.n, r: b.room, m: state.move || undefined, i: items, x: more || undefined, f: b.fragile ? 1 : undefined, o: b.first ? 1 : undefined };
+    url = baseUrl() + "#b=" + b64u(JSON.stringify(data));
+    if (url.length <= QR_MAX || !items.length) return url;
+    items.pop(); more++;
+  }
+}
+function qrSvg(text){
+  const qr = qrcode(0, "M"); qr.addData(text); qr.make();
+  const n = qr.getModuleCount(), q = 2; let d = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c + q} ${r + q}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${n + q * 2} ${n + q * 2}" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+
+/* ---------- scan view ---------- */
+function showScan(){
+  const m = location.hash.match(/^#b=([A-Za-z0-9_-]+)/);
+  if (!m) { document.body.classList.remove("scanning"); return false; }
+  let d; try { d = JSON.parse(unb64u(m[1])); } catch { document.body.classList.remove("scanning"); return false; }
+  // On the owner's phone, show the latest list rather than what was printed.
+  const mine = d.s === state.id && state.boxes.find(b => b.n === d.n);
+  const items = mine ? mine.items : d.i || [], room = mine ? mine.room : d.r;
+  const fragile = mine ? mine.fragile : d.f, first = mine ? mine.first : d.o;
+  $("sHead").style.background = colorOf(room);
+  $("sNum").textContent = "Box " + d.n; $("sRoom").textContent = room || ""; $("sMove").textContent = d.m || "";
+  $("sFlags").innerHTML = (fragile ? `<span class="badge b-fragile" style="font-size:14px">FRAGILE</span>` : "") + (first ? `<span class="badge b-first" style="font-size:14px">OPEN FIRST</span>` : "");
+  $("sItems").innerHTML = items.length ? items.map(i => `<li>${esc(i)}</li>`).join("") : "<li>No items listed</li>";
+  $("sMore").textContent = !mine && d.x ? `Plus ${d.x} more item${d.x === 1 ? "" : "s"}. The full list is on the phone that made this label.` : "";
+  $("sEdit").hidden = !mine;
+  if (mine) $("sEdit").onclick = e => { e.preventDefault(); history.replaceState(null, "", baseUrl()); showScan(); startEdit(mine.id); };
+  document.body.classList.add("scanning"); window.scrollTo({ top: 0 });
+  document.title = `Box ${d.n}${room ? " · " + room : ""} · Packed`;
+  return true;
+}
+window.addEventListener("hashchange", showScan);
+
+/* ---------- tabs ---------- */
+function show(view){
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.view === view));
+  document.querySelectorAll("section.view").forEach(s => s.classList.toggle("on", s.id === view));
+  window.scrollTo({ top: 0 });
+  if (view === "v-find") setTimeout(() => $("q").focus(), 50);
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+
+/* ---------- box form ---------- */
+$("room").innerHTML = ROOMS.map(r => `<option>${r[0]}</option>`).join("") + `<option value="__other">Other room…</option>`;
+$("room").addEventListener("change", () => { $("otherWrap").hidden = $("room").value !== "__other"; });
+$("move").value = state.move;
+$("move").addEventListener("input", () => { state.move = $("move").value; save(); });
+let editing = null;
+function resetForm(){
+  editing = null; $("items").value = ""; $("fragile").checked = false; $("first").checked = false;
+  $("formTitle").textContent = "Box " + nextNum(); $("saveBox").textContent = "Save box"; $("cancelEdit").hidden = true;
+}
+function startEdit(id){
+  const b = state.boxes.find(x => x.id === id); if (!b) return;
+  editing = id; show("v-boxes");
+  const known = ROOMS.some(r => r[0] === b.room);
+  $("room").value = known ? b.room : "__other"; $("otherWrap").hidden = known; $("otherRoom").value = known ? "" : b.room;
+  $("items").value = b.items.join("\n"); $("fragile").checked = !!b.fragile; $("first").checked = !!b.first;
+  $("formTitle").textContent = "Edit box " + b.n; $("saveBox").textContent = "Save changes"; $("cancelEdit").hidden = false;
+  $("items").focus();
+}
+$("cancelEdit").addEventListener("click", resetForm);
+$("saveBox").addEventListener("click", () => {
+  const room = $("room").value === "__other" ? ($("otherRoom").value.trim() || "Other") : $("room").value;
+  const items = itemsOf($("items").value);
+  if (!items.length) { $("fmsg").textContent = "Add at least one thing that's in the box."; $("fmsg").className = "msg err"; return; }
+  if (editing) {
+    Object.assign(state.boxes.find(b => b.id === editing), { room, items, fragile: $("fragile").checked, first: $("first").checked });
+    $("fmsg").textContent = "Saved. Reprint this label if you changed what's inside.";
+  } else {
+    if (!isPro() && state.boxes.length >= FREE_BOXES) return openModal(`You've used all ${FREE_BOXES} free boxes. Pro gives you unlimited boxes.`);
+    const b = { id: uid(), n: nextNum(), room, items, fragile: $("fragile").checked, first: $("first").checked };
+    state.boxes.push(b); $("fmsg").textContent = `Box ${b.n} saved. Write ${b.n} on the box, or print its label from the Print tab.`;
+  }
+  $("fmsg").className = "msg ok"; save(); resetForm(); renderList();
+});
+
+function boxRow(b, hl){
+  const mark = s => hl ? esc(s).replace(new RegExp("(" + hl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig"), "<mark>$1</mark>") : esc(s);
+  const list = hl ? b.items.filter(i => i.toLowerCase().includes(hl.toLowerCase())) : b.items;
+  return `<div class="box"><div class="num" style="background:${colorOf(b.room)}">${b.n}</div>
+    <div class="body"><div class="room">${esc(b.room)}${b.fragile ? '<span class="badge b-fragile">FRAGILE</span>' : ""}${b.first ? '<span class="badge b-first">OPEN FIRST</span>' : ""}</div>
+    <div class="items">${list.map(mark).join(" · ")}</div>
+    ${hl ? "" : `<div class="tools"><button class="btn small" data-edit="${b.id}">Edit</button><button class="btn small" data-del="${b.id}">Delete</button></div>`}</div></div>`;
+}
+function renderList(){
+  const n = state.boxes.length;
+  $("boxCount").textContent = isPro() ? `${n} box${n === 1 ? "" : "es"}` : `${n} of ${FREE_BOXES} free`;
+  $("boxList").innerHTML = n ? state.boxes.slice().sort((a, b) => b.n - a.n).map(b => boxRow(b)).join("") : `<div class="empty">No boxes yet. Fill in the form above for your first box.</div>`;
+  if (!editing) $("formTitle").textContent = "Box " + nextNum();
+}
+$("boxList").addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.edit) startEdit(t.dataset.edit);
+  if (t.dataset.del) {
+    const b = state.boxes.find(x => x.id === t.dataset.del);
+    if (!confirm(`Delete box ${b.n} (${b.room})?`)) return;
+    state.boxes = state.boxes.filter(x => x !== b); save(); renderList();
+  }
+});
+
+/* ---------- find ---------- */
+$("q").addEventListener("input", () => {
+  const q = $("q").value.trim();
+  if (!q) { $("results").innerHTML = ""; return; }
+  const hits = state.boxes.filter(b => b.items.some(i => i.toLowerCase().includes(q.toLowerCase())) || b.room.toLowerCase().includes(q.toLowerCase()));
+  $("results").innerHTML = hits.length ? hits.map(b => boxRow(b, q)).join("") : `<div class="empty">Not in any box yet.</div>`;
+});
+
+/* ---------- print ---------- */
+const wm = () => isPro() ? "" : `<div class="foot">Made free with Packed · dxpugsalotxd-hub.github.io/doorcount/boxes</div>`;
+function labels(){
+  if (!state.boxes.length) return `<div class="sheet"><div class="empty" style="color:#555">Add a box first.</div></div>`;
+  return `<div class="sheet"><div class="labels">${state.boxes.slice().sort((a, b) => a.n - b.n).map(b => {
+    const shown = b.items.slice(0, 7);
+    return `<div class="label"><div class="band" style="background:${colorOf(b.room)}"><span class="bn">${b.n}</span><span class="br">${esc(b.room)}</span></div>
+      <div class="lbody"><div class="qr">${qrSvg(boxUrl(b))}</div>
+        <div class="li"><b>${esc(state.move || "Scan to see what's inside")}</b>${shown.map(esc).join("<br>")}${b.items.length > shown.length ? `<br>+ ${b.items.length - shown.length} more` : ""}</div></div>
+      ${b.fragile || b.first ? `<div class="flags">${b.fragile ? '<span class="flag f">FRAGILE</span>' : ""}${b.first ? '<span class="flag o">OPEN FIRST</span>' : ""}</div>` : ""}
+      ${wm()}</div>`;
+  }).join("")}</div></div>`;
+}
+function inventory(){
+  const total = state.boxes.reduce((a, b) => a + b.items.length, 0);
+  return `<div class="sheet inv"><h1>${esc(state.move || "Moving inventory")}</h1>
+    <div class="meta">${state.boxes.length} boxes · ${total} items listed · printed ${esc(new Date().toLocaleDateString([], { year:"numeric", month:"long", day:"numeric" }))}</div>
+    <table><tr><th>Box</th><th>Room</th><th>Contents</th><th>Notes</th></tr>
+    ${state.boxes.slice().sort((a, b) => a.n - b.n).map(b => `<tr><td><b>${b.n}</b></td><td>${esc(b.room)}</td><td>${b.items.map(esc).join(", ")}</td><td>${[b.fragile && "Fragile", b.first && "Open first"].filter(Boolean).join(", ")}</td></tr>`).join("")}
+    </table><p class="meta" style="margin-top:14px">Delivered and checked by: ____________________ Date: __________</p></div>`;
+}
+function showDoc(html){ $("docArea").innerHTML = html; $("preview").classList.add("on"); $("preview").scrollIntoView({ behavior: "smooth", block: "start" }); }
+$("mkLabels").addEventListener("click", () => showDoc(labels()));
+$("mkInv").addEventListener("click", () => isPro() ? showDoc(inventory()) : openModal("The full inventory list is part of Pro."));
+$("printDoc").addEventListener("click", () => { $("printRoot").innerHTML = $("docArea").innerHTML; window.print(); });
+$("closeDoc").addEventListener("click", () => { $("preview").classList.remove("on"); $("docArea").innerHTML = ""; });
+
+/* ---------- backup ---------- */
+$("backup").addEventListener("click", async () => {
+  const file = new File([JSON.stringify({ app: "packed", v: 1, state })], `packed-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: "application/json" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "Packed backup" }); $("bmsg").textContent = "Backup shared."; $("bmsg").className = "msg ok"; return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+  $("bmsg").textContent = "Backup saved to your downloads."; $("bmsg").className = "msg ok";
+});
+$("restoreBtn").addEventListener("click", () => $("restoreFile").click());
+$("restoreFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text()); if (data.app !== "packed" || !data.state) throw 0;
+    if (!confirm("Replace the boxes on this device with the backup?")) return;
+    state = data.state; save(); $("move").value = state.move || ""; resetForm(); renderList();
+    $("bmsg").textContent = "Backup restored."; $("bmsg").className = "msg ok";
+  } catch { $("bmsg").textContent = "That file isn't a Packed backup."; $("bmsg").className = "msg err"; }
+});
+$("reset").addEventListener("click", () => {
+  if (!confirm("Erase every box on this device? Save a backup first if you need it.")) return;
+  state = { id: uid(), move: "", boxes: [] }; save(); $("move").value = ""; resetForm(); renderList(); show("v-boxes");
+});
+
+/* ---------- Pro ---------- */
+document.querySelectorAll(".freeMax").forEach(el => el.textContent = FREE_BOXES + " boxes");
+function openModal(reason){ $("msg").textContent = reason || ""; $("msg").className = "msg"; $("modal").classList.add("open"); }
+$("proBtn").addEventListener("click", () => openModal(pro ? "Pro is unlocked on this device. Thank you!" : ""));
+$("closeModal").addEventListener("click", () => $("modal").classList.remove("open"));
+$("modal").addEventListener("click", e => { if (e.target.id === "modal") $("modal").classList.remove("open"); });
+if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. When you're done, come back to this tab to unlock Pro."; }
+// After checkout the buyer returns here and unlocks Pro (honor-based, like Resume Once).
+$("buyLink").addEventListener("click", () => { store.set("pk.buyAt", Date.now()); setTimeout(checkPaid, 16000); });
+function checkPaid(){
+  const t = store.get("pk.buyAt", 0);
+  const ready = PAYMENT_LINK && !pro && t && Date.now() - t > 15000;
+  $("paidBox").hidden = !ready;
+  if (ready && !$("modal").classList.contains("open")) openModal("");
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPaid(); });
+window.addEventListener("focus", checkPaid);
+$("paidBtn").addEventListener("click", () => {
+  pro = true; store.set("pk.pro", true); updatePro(); $("paidBox").hidden = true;
+  $("msg").textContent = "Pro is unlocked. Thank you for your purchase!"; $("msg").className = "msg ok"; renderList();
+});
+function updatePro(){ $("proBtn").textContent = isPro() ? "Pro ✓" : "Get Pro"; }
+
+save(); resetForm(); renderList(); updatePro(); checkPaid(); showScan();
+</script>
+</body>
+</html>
