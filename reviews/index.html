@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rave: get more Google reviews</title>
+<meta name="description" content="Print a counter sign with a QR code that opens your Google review page, and send customers ready-made review request texts and emails. No app, no account, no monthly fee.">
+<style>
+:root{
+  --bg:#f5f6f2; --panel:#ffffff; --ink:#1b1d1a; --muted:#61655d; --line:#dfe2da;
+  --accent:#1f6f4a; --accent-ink:#ffffff; --soft:#e5f1ea; --ok:#1f7a4d; --bad:#b3261e; --star:#f2a900;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#121411; --panel:#1b1e1a; --ink:#ebeee8; --muted:#a3a89e; --line:#33372f; --accent:#5cc28f; --accent-ink:#06210f; --soft:#1e3327; --ok:#4cc38a; --bad:#f2786f; }
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+header.top{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{font-weight:700;letter-spacing:-.01em}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;color:inherit;text-align:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn.block{display:block;width:100%}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.hero{padding:18px 0 4px}
+.hero h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+.hero p{margin:0;color:var(--muted)}
+.tabs{display:flex;gap:8px;padding:14px 0 4px;position:sticky;top:61px;background:var(--bg);z-index:4}
+.tabs button{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 4px;cursor:pointer;font-size:14px}
+.tabs button.on{background:var(--soft);border-color:var(--accent);font-weight:600}
+section.view{display:none;padding:10px 0 40px}
+section.view.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 3px}
+input,textarea,select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:9px 10px;min-width:0}
+input[type=color]{padding:2px;height:40px}
+textarea{min-height:120px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+details.help{margin-top:8px;font-size:13px;background:var(--soft);border-radius:10px;padding:8px 10px}
+details.help summary{cursor:pointer;font-weight:600}
+details.help ol{padding-left:18px;margin:8px 0 2px}
+details.help li{margin-bottom:6px}
+details.help a{color:var(--accent)}
+.linkbox{margin-top:10px;padding:10px;border-radius:10px;border:1px dashed var(--line);font-size:13px;overflow-wrap:anywhere}
+.linkbox .k{font-weight:700}
+.actions{display:grid;gap:8px}
+.choice{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;background:var(--panel);width:100%;text-align:left}
+.choice b{display:block}
+.choice span{color:var(--muted);font-size:13px}
+.choice .ic{flex:none;width:38px;height:38px;border-radius:9px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:20px}
+.pro-tag{font-size:11px;background:var(--soft);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:600;vertical-align:middle;margin-left:4px}
+.tpl{border-top:1px solid var(--line);padding:12px 0}
+.tpl:first-of-type{border-top:0}
+.tpl h3{font-size:14px;margin:0 0 6px}
+.tpl .txt{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;overflow-wrap:anywhere}
+.tpl .txt.locked{filter:blur(4px);user-select:none}
+.tpl .tools{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.msg{font-size:13px;margin-top:8px}
+.msg.ok{color:var(--ok)} .msg.err{color:var(--bad)}
+footer.site{color:var(--muted);font-size:12px;text-align:center;padding:10px 16px 30px}
+footer.site a{color:inherit}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.open{display:flex}
+.modal .box2{background:var(--panel);border-radius:16px;padding:18px;max-width:400px;width:100%;max-height:90vh;overflow:auto}
+.modal h2{margin:0 0 4px;font-size:18px}
+.modal .price{font-size:28px;font-weight:700;margin:6px 0}
+.modal ul{padding-left:18px;margin:8px 0 14px}
+
+/* printable signs */
+#preview{display:none;margin-top:14px}
+#preview.on{display:block}
+.sheet{background:#fff;color:#111;border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.12);padding:16px;overflow:hidden}
+.sign{border:2px dashed #bbb;border-radius:14px;text-align:center;padding:22px 18px;break-inside:avoid;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.sign .logo{max-height:70px;max-width:70%;object-fit:contain;margin-bottom:8px}
+.sign .biz{font-weight:800;font-size:20px;letter-spacing:-.01em;overflow-wrap:anywhere}
+.sign .stars{color:var(--star);font-size:34px;letter-spacing:4px;line-height:1.2;margin:4px 0}
+.sign .head{font-size:26px;font-weight:800;line-height:1.15;margin:4px 0 12px;overflow-wrap:anywhere}
+.sign .qr{width:62%;max-width:260px;padding:8px;border-radius:12px;border:4px solid}
+.sign .qr svg{width:100%;height:auto;display:block}
+.sign .how{font-size:14px;margin-top:10px;color:#333}
+.sign .sub{font-size:13px;color:#555;margin-top:6px;overflow-wrap:anywhere}
+.sign .foot{font-size:9px;color:#888;margin-top:10px}
+.one .sign{max-width:430px;margin:0 auto;min-height:540px}
+.four{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.four .sign{padding:14px 10px}
+.four .sign .biz{font-size:15px}
+.four .sign .stars{font-size:22px}
+.four .sign .head{font-size:17px;margin-bottom:8px}
+.four .sign .how{font-size:11px}
+.four .sign .logo{max-height:44px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bcard{border:1.5px dashed #bbb;border-radius:10px;display:flex;gap:10px;align-items:center;padding:8px 10px;break-inside:avoid}
+.bcard .qr{flex:none;width:38%}
+.bcard .qr svg{width:100%;height:auto;display:block}
+.bcard .t{min-width:0;text-align:left}
+.bcard .t b{display:block;font-size:13px;overflow-wrap:anywhere}
+.bcard .t .stars{color:var(--star);font-size:15px;letter-spacing:2px}
+.bcard .t .h{font-size:12px;font-weight:700;line-height:1.2;margin:2px 0}
+.bcard .t .s{font-size:10px;color:#555}
+#printRoot{display:none}
+@media print{
+  @page{margin:.4in}
+  body{background:#fff}
+  body > *:not(#printRoot){display:none !important}
+  #printRoot{display:block !important}
+  #printRoot .sheet{box-shadow:none;padding:0;border-radius:0}
+  .one .sign{min-height:9.2in;max-width:none;border-width:3px}
+  .one .sign .head{font-size:38px}
+  .one .sign .biz{font-size:28px}
+  .one .sign .stars{font-size:48px}
+  .one .sign .how{font-size:18px}
+  .four .sign{height:4.85in}
+  .bcard{height:1.9in}
+  .sign .stars,.bcard .t .stars{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (max-width:520px){
+  .row{grid-template-columns:1fr}
+  .sheet .four{grid-template-columns:1fr}
+  .sheet .cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+<header class="top">
+  <div class="brand">Rave<small>More Google reviews, no monthly fee</small></div>
+  <button class="btn primary small" id="proBtn">Get Pro</button>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>Happy customers forget to leave reviews. Make it one tap.</h1>
+    <p>Print a counter sign with a QR code that opens your Google review page. Customers scan it with their phone camera and write a review on the spot. Then text or email the ones who already left with a ready-made message.</p>
+  </div>
+
+  <nav class="tabs">
+    <button class="on" data-view="v-biz">1. Business</button>
+    <button data-view="v-sign">2. Sign</button>
+    <button data-view="v-ask">3. Ask</button>
+  </nav>
+
+  <!-- BUSINESS -->
+  <section class="view on" id="v-biz">
+    <div class="card">
+      <h2>Your business</h2>
+      <label for="biz">Business name</label>
+      <input id="biz" placeholder="e.g. Noor's Barbershop" autocomplete="organization">
+      <label for="link">Your Google review link (best) or Place ID</label>
+      <input id="link" placeholder="https://g.page/r/... or ChIJ..." inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <details class="help">
+        <summary>How do I find my review link?</summary>
+        <ol>
+          <li><b>Easiest:</b> on your phone, open Google and search your business name while signed in to the Google account that owns it. Tap <b>Ask for reviews</b> (or <b>Get more reviews</b>), then <b>Copy link</b>, and paste it above.</li>
+          <li><b>Or:</b> open <a href="https://developers.google.com/maps/documentation/places/web-service/place-id#find-id" target="_blank" rel="noopener">Google's Place ID finder</a>, type your business name, copy the code that starts with <b>ChIJ</b>, and paste it above.</li>
+          <li><b>Not sure?</b> Leave it empty and add your city below. Your sign will open your business on Google Maps, where customers tap Reviews.</li>
+        </ol>
+        Using Yelp, Facebook or another site instead? Paste that review page link. It works the same way.
+      </details>
+      <div id="cityWrap">
+        <label for="city">City (only needed without a review link)</label>
+        <input id="city" placeholder="e.g. Dallas, TX">
+      </div>
+      <div class="linkbox" id="linkBox"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <a class="btn small" id="testLink" href="#" target="_blank" rel="noopener">Test my link</a>
+        <button class="btn small" id="toSign">Next: make my sign</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Sign wording</h2>
+      <label for="head">Headline</label>
+      <input id="head" placeholder="Loved your visit? Leave us a review!">
+      <label for="sub">Small line under the code (optional)</label>
+      <input id="sub" placeholder="e.g. It takes 30 seconds and means the world to us.">
+      <div class="row">
+        <div><label for="color">Sign color</label><input id="color" type="color" value="#1f6f4a"></div>
+        <div><label>Logo <span class="pro-tag">PRO</span></label><button class="btn block" id="logoBtn">Add logo</button><input type="file" id="logoFile" accept="image/*" hidden></div>
+      </div>
+      <div class="hint" id="logoNote"></div>
+    </div>
+  </section>
+
+  <!-- SIGN -->
+  <section class="view" id="v-sign">
+    <div class="card">
+      <h2>Print your sign</h2>
+      <div class="actions">
+        <button class="choice" data-fmt="one"><span class="ic">🪧</span><div><b>Counter sign</b><span>One big sign per page. Stand it by the register or tape it on the door.</span></div></button>
+        <button class="choice" data-fmt="four"><span class="ic">🍽️</span><div><b>Table cards, 4 per page <span class="pro-tag">PRO</span></b><span>For tables, chairs, waiting rooms and mirrors.</span></div></button>
+        <button class="choice" data-fmt="cards"><span class="ic">🎟️</span><div><b>Handout cards, 10 per page <span class="pro-tag">PRO</span></b><span>Business-card size. Put one in every bag, invoice or job folder.</span></div></button>
+        <button class="choice" id="pngBtn"><span class="ic">⬇️</span><div><b>QR code image <span class="pro-tag">PRO</span></b><span>Download the code to put on receipts, invoices, menus or your website.</span></div></button>
+      </div>
+      <div class="hint">No printer? Open the sign, save it as a PDF, and print it at a library or copy shop.</div>
+    </div>
+    <div id="preview">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn primary" id="printDoc">Save as PDF / Print</button>
+        <button class="btn" id="closeDoc">Close</button>
+      </div>
+      <div id="docArea"></div>
+    </div>
+  </section>
+
+  <!-- ASK -->
+  <section class="view" id="v-ask">
+    <div class="card">
+      <h2>Ask by text or email</h2>
+      <p class="hint" style="margin-top:0">Send these from your own phone to customers you just served. Add their first name so it feels personal.</p>
+      <div class="row">
+        <div><label for="cust">Customer's first name</label><input id="cust" placeholder="e.g. Sarah"></div>
+        <div><label for="owner">Your name</label><input id="owner" placeholder="e.g. Omar"></div>
+      </div>
+      <div id="tpls" style="margin-top:8px"></div>
+      <div class="msg" id="tmsg"></div>
+    </div>
+    <div class="card">
+      <h2>Good to know</h2>
+      <ul class="hint" style="padding-left:18px;margin:0">
+        <li>Ask every customer, not only the happy ones. Google doesn't allow screening out unhappy customers, and honest reviews build more trust anyway.</li>
+        <li>Don't offer discounts or gifts in exchange for reviews. Google can remove those reviews.</li>
+        <li>The best time to ask is right after a good visit or a finished job, while they're still smiling.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<footer class="site">Rave keeps your details on your device. Nothing is uploaded.<br>
+<a href="../boxes/">Packed</a> · <a href="../deposit/">Deposit Back</a> · <a href="../resume/">Resume Once</a> · <a href="../">Doorcount</a></footer>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="box2">
+    <h2 id="mTitle">Rave Pro</h2>
+    <div class="price">$9 <span style="font-size:14px;font-weight:400;color:var(--muted)">one time</span></div>
+    <ul>
+      <li>Table cards (4 per page) and handout cards (10 per page)</li>
+      <li>Your logo on every sign</li>
+      <li>QR code image for receipts, menus and your website</li>
+      <li>All 7 message templates, including replies to good and bad reviews</li>
+      <li>No "made with Rave" line on your signs</li>
+      <li>No subscription, ever</li>
+    </ul>
+    <a class="btn primary block" id="buyLink" href="#" target="_blank" rel="noopener" hidden>Buy Pro for $9</a>
+    <div class="hint" id="buyNote">Everything is free while we launch. Enjoy!</div>
+    <div id="paidBox" hidden style="margin-top:14px;padding:12px;border-radius:10px;background:var(--soft)">
+      <b>Finished paying?</b> Tap below to switch on Pro on this device.
+      <button class="btn primary block" id="paidBtn" style="margin-top:8px">I've paid, unlock Pro</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <button class="btn block" id="closeModal" style="margin-top:10px">Close</button>
+  </div>
+</div>
+
+<div id="printRoot"></div>
+
+<script src="qrcode.js"></script>
+<script>
+const PAYMENT_LINK = "";  // e.g. "https://buy.stripe.com/xxxxxxxx". While empty, Pro is free for everyone.
+const FREE_TEMPLATES = 2;
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const FIELDS = ["biz", "link", "city", "head", "sub", "color", "cust", "owner"];
+let state = Object.assign({ color: "#1f6f4a" }, store.get("rv.state", {}));
+let logo = store.get("rv.logo", "");
+let pro = store.get("rv.pro", false);
+const isPro = () => !PAYMENT_LINK || pro;
+const save = () => store.set("rv.state", state);
+
+/* ---------- where the QR code goes ---------- */
+function target(){
+  let raw = (state.link || "").trim();
+  if (raw) {
+    if (/^ChIJ[\w-]{10,}$/.test(raw) || /^[\w-]{25,}$/.test(raw) && !raw.includes("."))
+      return { url: "https://search.google.com/local/writereview?placeid=" + encodeURIComponent(raw), kind: "review", note: "Opens the Google review box for your business." };
+    if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+    try { const u = new URL(raw); return { url: u.href, kind: "link", note: /google|g\.page|goo\.gl/i.test(u.hostname) ? "Opens your Google review page." : "Opens the review page you pasted." }; }
+    catch { return { url: "", kind: "bad", note: "That doesn't look like a link. Copy it again and paste it here." }; }
+  }
+  const q = [state.biz, state.city].map(s => (s || "").trim()).filter(Boolean).join(" ");
+  if (q && (state.city || "").trim())
+    return { url: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q), kind: "maps", note: "Opens your business on Google Maps, where customers tap Reviews. Add your review link above to skip that step." };
+  return { url: "", kind: "none", note: "Add your review link, or your business name and city, to make your code." };
+}
+const bizName = () => (state.biz || "").trim() || "our business";
+const headline = () => (state.head || "").trim() || "Loved your visit? Leave us a review!";
+
+function qrSvg(text){
+  const qr = qrcode(0, "M"); qr.addData(text); qr.make();
+  const n = qr.getModuleCount(), q = 2; let d = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c + q} ${r + q}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${n + q * 2} ${n + q * 2}" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+
+/* ---------- business form ---------- */
+FIELDS.forEach(f => {
+  const el = $(f); if (state[f] != null) el.value = state[f];
+  el.addEventListener("input", () => { state[f] = el.value; save(); refresh(); });
+});
+function refresh(){
+  const t = target();
+  $("linkBox").innerHTML = t.url
+    ? `<span class="k">Your code goes to:</span> ${esc(t.url)}<div class="hint">${esc(t.note)}</div>`
+    : `<span class="${t.kind === "bad" ? "msg err" : "hint"}" style="margin:0">${esc(t.note)}</span>`;
+  $("testLink").href = t.url || "#";
+  $("testLink").style.opacity = t.url ? 1 : .5;
+  $("cityWrap").hidden = !!(state.link || "").trim();
+  $("logoBtn").textContent = logo ? "Remove logo" : "Add logo";
+  $("logoNote").textContent = logo ? "Logo added. It shows at the top of your signs." : "";
+  renderTemplates();
+}
+$("testLink").addEventListener("click", e => { if (!target().url) { e.preventDefault(); $("link").focus(); } });
+$("toSign").addEventListener("click", () => show("v-sign"));
+
+/* ---------- logo (Pro) ---------- */
+$("logoBtn").addEventListener("click", () => {
+  if (logo) { logo = ""; store.set("rv.logo", ""); refresh(); return; }
+  if (!isPro()) return openModal("Adding your logo is part of Pro.");
+  $("logoFile").click();
+});
+$("logoFile").addEventListener("change", e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  const img = new Image();
+  img.onload = () => {
+    // Shrink big photos so the logo fits in browser storage.
+    const s = Math.min(1, 400 / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    logo = c.toDataURL("image/png"); URL.revokeObjectURL(img.src);
+    if (!store.set("rv.logo", logo)) $("logoNote").textContent = "Logo added for now, but it's too big to remember next time.";
+    refresh();
+  };
+  img.onerror = () => { $("logoNote").textContent = "That image couldn't be opened. Try a PNG or JPG."; };
+  img.src = URL.createObjectURL(f);
+});
+
+/* ---------- signs ---------- */
+const wm = () => isPro() ? "" : `<div class="foot">Made with Rave · dxpugsalotxd-hub.github.io/doorcount/reviews</div>`;
+function sign(svg){
+  const col = esc(state.color || "#1f6f4a");
+  return `<div class="sign">
+    ${logo && isPro() ? `<img class="logo" src="${logo}" alt="">` : ""}
+    <div class="biz">${esc(bizName())}</div>
+    <div class="stars">★★★★★</div>
+    <div class="head" style="color:${col}">${esc(headline())}</div>
+    <div class="qr" style="border-color:${col}">${svg}</div>
+    <div class="how">📱 Point your phone camera here</div>
+    ${(state.sub || "").trim() ? `<div class="sub">${esc(state.sub)}</div>` : ""}
+    ${wm()}</div>`;
+}
+function bcard(svg){
+  return `<div class="bcard"><div class="qr">${svg}</div><div class="t">
+    <b>${esc(bizName())}</b><div class="stars">★★★★★</div>
+    <div class="h" style="color:${esc(state.color || "#1f6f4a")}">${esc(headline())}</div>
+    <div class="s">Scan with your phone camera</div></div></div>`;
+}
+function doc(fmt){
+  const t = target();
+  if (!t.url) return null;
+  const svg = qrSvg(t.url);
+  if (fmt === "four") return `<div class="sheet"><div class="four">${Array(4).fill(sign(svg)).join("")}</div></div>`;
+  if (fmt === "cards") return `<div class="sheet"><div class="cards">${Array(10).fill(bcard(svg)).join("")}</div></div>`;
+  return `<div class="sheet one">${sign(svg)}</div>`;
+}
+document.querySelectorAll("[data-fmt]").forEach(b => b.addEventListener("click", () => {
+  const fmt = b.dataset.fmt;
+  if (fmt !== "one" && !isPro()) return openModal(fmt === "four" ? "Table cards are part of Pro." : "Handout cards are part of Pro.");
+  const html = doc(fmt);
+  if (!html) { show("v-biz"); $("link").focus(); return; }
+  $("docArea").innerHTML = html; $("preview").classList.add("on");
+  $("preview").scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+$("printDoc").addEventListener("click", () => { $("printRoot").innerHTML = $("docArea").innerHTML; window.print(); });
+$("closeDoc").addEventListener("click", () => { $("preview").classList.remove("on"); $("docArea").innerHTML = ""; });
+
+$("pngBtn").addEventListener("click", async () => {
+  if (!isPro()) return openModal("The QR code image is part of Pro.");
+  const t = target(); if (!t.url) { show("v-biz"); $("link").focus(); return; }
+  const qr = qrcode(0, "M"); qr.addData(t.url); qr.make();
+  const n = qr.getModuleCount(), q = 4, s = 16, c = document.createElement("canvas");
+  c.width = c.height = (n + q * 2) * s;
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.fillStyle = "#000";
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) g.fillRect((k + q) * s, (r + q) * s, s, s);
+  const blob = await new Promise(res => c.toBlob(res, "image/png"));
+  const file = new File([blob], `${(state.biz || "review").trim().replace(/[^\w-]+/g, "-").toLowerCase() || "review"}-review-qr.png`, { type: "image/png" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "Review QR code" }); return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+});
+
+/* ---------- message templates ---------- */
+const TEMPLATES = [
+  { id: "text", title: "Text after a visit", kind: "sms",
+    body: v => `Hi ${v.cust}, thanks for choosing ${v.biz} today! If you have a minute, a quick Google review would help us a lot: ${v.link}${v.sign}` },
+  { id: "email", title: "Email after a visit", kind: "email", subject: v => `How did we do, ${v.cust}?`,
+    body: v => `Hi ${v.cust},\n\nThank you for choosing ${v.biz}. We hope everything went well.\n\nWould you share a few words about your experience on Google? It takes about 30 seconds, and it helps other people in the area find us:\n${v.link}\n\nThank you,\n${v.owner || v.biz}` },
+  { id: "job", title: "After a finished job (trades and home services)", kind: "sms",
+    body: v => `Hi ${v.cust}, it's ${v.owner || "the team"} from ${v.biz}. Thanks again for trusting us with the work. If you're happy with how it turned out, a short Google review would mean a lot to a small business like ours: ${v.link}` },
+  { id: "nudge", title: "Friendly reminder, a few days later", kind: "sms",
+    body: v => `Hi ${v.cust}, just a quick reminder from ${v.biz}. If you get a moment, we'd really appreciate your review here: ${v.link} No worries if not, and thanks again!${v.sign}` },
+  { id: "post", title: "Post for Instagram, Facebook or WhatsApp status", kind: "copy",
+    body: v => `Thank you to everyone who has visited ${v.biz}! ⭐️⭐️⭐️⭐️⭐️\n\nIf we've served you, would you leave us a quick Google review? It helps more people find us:\n${v.link}` },
+  { id: "thanks", title: "Reply to a 5-star review", kind: "copy",
+    body: v => `Thank you so much, ${v.cust}! We're really glad you had a great experience with us. We appreciate you taking the time to write this, and we look forward to seeing you again.${v.owner ? `\n\n${v.owner}, ${v.biz}` : ""}` },
+  { id: "bad", title: "Calm reply to a bad review", kind: "copy",
+    body: v => `Hi ${v.cust}, thank you for the honest feedback, and I'm sorry we let you down. This isn't the experience we want for anyone. I'd like to make it right, so please contact us directly and ask for ${v.owner || "the owner"}.${v.owner ? `\n\n${v.owner}, ${v.biz}` : ""}` },
+];
+function vars(){
+  const t = target();
+  return {
+    cust: (state.cust || "").trim() || "there",
+    owner: (state.owner || "").trim(),
+    biz: bizName(),
+    link: t.url || "[your review link]",
+    sign: (state.owner || "").trim() ? ` - ${(state.owner || "").trim()}` : "",
+  };
+}
+function renderTemplates(){
+  const v = vars();
+  $("tpls").innerHTML = TEMPLATES.map((t, i) => {
+    const locked = !isPro() && i >= FREE_TEMPLATES;
+    const body = t.body(v);
+    return `<div class="tpl"><h3>${esc(t.title)}${locked ? '<span class="pro-tag">PRO</span>' : ""}</h3>
+      <div class="txt${locked ? " locked" : ""}">${esc(body)}</div>
+      <div class="tools">
+        <button class="btn small" data-act="copy" data-i="${i}">Copy</button>
+        ${t.kind === "sms" ? `<button class="btn small" data-act="sms" data-i="${i}">Open in Messages</button>` : ""}
+        ${t.kind === "email" ? `<button class="btn small" data-act="email" data-i="${i}">Open in Email</button>` : ""}
+      </div></div>`;
+  }).join("");
+}
+$("tpls").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const i = +b.dataset.i, t = TEMPLATES[i];
+  if (!isPro() && i >= FREE_TEMPLATES) return openModal("All 7 message templates are part of Pro.");
+  const v = vars(), body = t.body(v);
+  if (b.dataset.act === "sms") { location.href = "sms:?&body=" + encodeURIComponent(body); return; }
+  if (b.dataset.act === "email") { location.href = "mailto:?subject=" + encodeURIComponent(t.subject(v)) + "&body=" + encodeURIComponent(body); return; }
+  try { await navigator.clipboard.writeText(body); $("tmsg").textContent = "Copied. Paste it wherever you like."; $("tmsg").className = "msg ok"; }
+  catch { $("tmsg").textContent = "Couldn't copy automatically. Press and hold the message to copy it."; $("tmsg").className = "msg err"; }
+});
+
+/* ---------- tabs ---------- */
+function show(view){
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.view === view));
+  document.querySelectorAll("section.view").forEach(s => s.classList.toggle("on", s.id === view));
+  window.scrollTo({ top: 0 });
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+
+/* ---------- Pro ---------- */
+function openModal(reason){ $("msg").textContent = reason || ""; $("msg").className = "msg"; $("modal").classList.add("open"); }
+$("closeModal").addEventListener("click", () => $("modal").classList.remove("open"));
+$("modal").addEventListener("click", e => { if (e.target === $("modal")) $("modal").classList.remove("open"); });
+$("proBtn").addEventListener("click", () => openModal(pro ? "Pro is unlocked on this device. Thank you!" : ""));
+if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. When you're done, come back to this tab to unlock Pro."; }
+// After checkout the buyer returns here and unlocks Pro (honor-based, like Resume Once).
+$("buyLink").addEventListener("click", () => { store.set("rv.buyAt", Date.now()); setTimeout(checkPaid, 16000); });
+function checkPaid(){
+  const t = store.get("rv.buyAt", 0);
+  const ready = PAYMENT_LINK && !pro && t && Date.now() - t > 15000;
+  $("paidBox").hidden = !ready;
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPaid(); });
+window.addEventListener("focus", checkPaid);
+$("paidBtn").addEventListener("click", () => {
+  pro = true; store.set("rv.pro", true); updatePro(); $("paidBox").hidden = true;
+  $("msg").textContent = "Pro is unlocked. Thank you for your purchase!"; $("msg").className = "msg ok"; refresh();
+});
+function updatePro(){ $("proBtn").textContent = isPro() ? "Pro ✓" : "Get Pro"; }
+
+refresh(); updatePro(); checkPaid();
+</script>
+</body>
+</html>
