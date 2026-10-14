@@ -211,7 +211,11 @@ footer{max-width:1200px;margin:0 auto;padding:0 16px 30px;color:var(--muted);fon
     </ul>
     <a class="btn primary" id="buyLink" href="#" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none" hidden>Buy Pro for $9</a>
     <div class="hint" id="buyNote">Checkout is opening soon. Check back shortly.</div>
-    <label for="code" style="margin-top:14px">Already paid? Enter your unlock code</label>
+    <div id="paidBox" hidden style="margin-top:14px;padding:12px;border-radius:10px;background:var(--soft)">
+      <b>Finished paying?</b> Tap below to switch on Pro on this device.
+      <button class="btn primary" id="paidBtn" style="width:100%;margin-top:8px">I've paid, unlock Pro</button>
+    </div>
+    <label for="code" style="margin-top:14px">Have an unlock code?</label>
     <div style="display:flex;gap:8px"><input id="code" placeholder="ONCE-XXXX-XXXX" autocapitalize="characters"><button class="btn" id="unlock">Unlock</button></div>
     <div class="msg" id="msg"></div>
     <button class="btn" id="closeModal" style="margin-top:10px;width:100%">Close</button>
@@ -389,7 +393,21 @@ function openModal(reason){
 $("proBtn").addEventListener("click", () => openModal(pro ? "Pro is unlocked on this device. Thank you!" : ""));
 $("closeModal").addEventListener("click", () => $("modal").classList.remove("open"));
 $("modal").addEventListener("click", e => { if (e.target.id === "modal") $("modal").classList.remove("open"); });
-if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. Your unlock code appears on the page after you pay."; }
+if (PAYMENT_LINK) { $("buyLink").href = PAYMENT_LINK; $("buyLink").hidden = false; $("buyNote").textContent = "Checkout opens in a new tab. When you're done, come back to this tab to unlock Pro."; }
+// After checkout the buyer returns here and unlocks Pro (no code needed from Stripe).
+$("buyLink").addEventListener("click", () => { store.set("ro.buyAt", Date.now()); setTimeout(checkPaid, 16000); });
+function checkPaid(){
+  const t = store.get("ro.buyAt", 0);
+  const ready = !pro && t && Date.now() - t > 15000;
+  $("paidBox").hidden = !ready;
+  if (ready && !$("modal").classList.contains("open")) openModal("");
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPaid(); });
+window.addEventListener("focus", checkPaid);
+$("paidBtn").addEventListener("click", () => {
+  pro = true; store.set("ro.pro", true); updatePro(); $("paidBox").hidden = true;
+  $("msg").textContent = "Pro is unlocked. Thank you for your purchase!"; $("msg").className = "msg ok"; render();
+});
 
 async function sha256(s){
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -404,7 +422,7 @@ $("unlock").addEventListener("click", async () => {
 });
 function updatePro(){ $("proBtn").textContent = pro ? "Pro ✓" : "Get Pro"; }
 
-fillInputs(); updatePro(); render();
+fillInputs(); updatePro(); render(); checkPaid();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 </script>
 </body>
